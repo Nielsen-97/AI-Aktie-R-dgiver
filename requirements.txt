@@ -1,0 +1,23 @@
+# AI Aktie Rådgiver — Python pakker
+# FinBERT og ChromaDB er udeladt — for tunge til GitHub Actions (500MB+)
+# De kører kun lokalt på din computer
+
+# Data og analyse
+yfinance>=0.2.40
+pandas>=2.0.0
+numpy>=1.26.0
+
+# AI/LLM
+groq>=0.9.0
+
+# Nyhedsfeeds (sentiment)
+feedparser>=6.0.11
+
+# Web requests
+requests>=2.31.0
+
+# Streamlit (til lokal app — ikke brugt i GitHub Actions)
+streamlit>=1.35.0
+
+# Database (indbygget i Python — ingen installation nødvendig)
+# sqlite3 er en del af Python standardbiblioteket
