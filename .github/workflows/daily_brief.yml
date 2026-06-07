@@ -1,12 +1,9 @@
 name: AI Aktie Rådgiver — Daglig Scanning
 
 on:
-  # Kør kl. 07:00 dansk tid (= 05:00 UTC om sommeren, 06:00 UTC om vinteren)
-  # Vi bruger 05:00 UTC som dækker sommertid (CEST = UTC+2)
   schedule:
     - cron: "0 5 * * 1-5"   # Mandag–fredag kl 07:00 dansk sommertid
 
-  # Tillad manuel kørsel fra GitHub UI
   workflow_dispatch:
     inputs:
       scanning_type:
@@ -24,34 +21,32 @@ jobs:
     timeout-minutes: 60
 
     permissions:
-      contents: write   # Tillader at skrive resultater tilbage til repo
+      contents: write
+
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
-      # ── 1. Hent kode ──────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── 2. Python setup ───────────────────────────────────
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: "pip"
 
-      # ── 3. Installer pakker ───────────────────────────────
       - name: Installer afhængigheder
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
 
-      # ── 4. Kør makro ──────────────────────────────────────
       - name: Hent makro (VIX + SP500 + renter)
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_ACTIONS: "true"
         run: python engine.py makro
 
-      # ── 5. Kør screener ───────────────────────────────────
       - name: Kør screener (alle sektorer)
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
@@ -63,15 +58,13 @@ jobs:
             python engine.py screener --komplet
           fi
 
-      # ── 6. Kør Groq dyb analyse ───────────────────────────
       - name: Groq 70b dyb analyse af top kandidater
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_ACTIONS: "true"
         run: python engine.py dyb
 
-      # ── 7. Gem resultater tilbage til repo ─────────────────
-      - name: Gem analyse-resultater til repository
+      - name: Gem resultater til repository
         run: |
           git config user.name  "AI Aktie Bot"
           git config user.email "bot@ai-aktie-raadgiver.dk"
@@ -79,3 +72,164 @@ jobs:
           git add data/alerts.json || true
           git diff --staged --quiet || git commit -m "📈 Daglig scanning $(date +'%Y-%m-%d %H:%M UTC')"
           git push
+
+      # ── Send mail med dagens signaler ─────────────────────
+      - name: Læs scanningsresultater
+        id: resultater
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_ACTIONS: "true"
+        run: |
+          python3 << 'PYTHON'
+          import json, os
+
+          # Læs brief
+          try:
+              with open("data/daily_brief_seneste.json") as f:
+                  brief = json.load(f)
+          except:
+              brief = {}
+
+          # Læs makro
+          try:
+              with open("data/makro_seneste.json") as f:
+                  makro = json.load(f)
+          except:
+              makro = {}
+
+          # Byg mail-indhold
+          dato = brief.get("dato", "ukendt")
+          vix  = makro.get("vix", "?")
+          sp   = makro.get("sp_status", "?")
+          kands = brief.get("top_kandidater", [])
+
+          linjer = []
+          linjer.append(f"AI Aktie Rådgiver — Daglig Scanning {dato}")
+          linjer.append("=" * 50)
+          linjer.append(f"Makro: VIX {vix:.1f} | SP500 {sp}")
+          linjer.append("")
+
+          if kands:
+              linjer.append(f"SIGNALER ({len(kands)} analyseret af Groq 70b):")
+              linjer.append("")
+              for r in kands:
+                  analyse = r.get("analyse", "")
+                  import re as re_mod
+                  anb_m = re_mod.search(r"ANBEFALING[:\s]+([A-ZÆØÅ ]+)", analyse)
+                  res_m = re_mod.search(r"RESUMÉ[:\s]+(.{10,150})", analyse)
+                  entry_m = re_mod.search(r"ENTRY PRIS[:\s]+\$?([\d,.]+)", analyse)
+                  stop_m  = re_mod.search(r"STOP LOSS[:\s]+\$?([\d,.]+)", analyse)
+                  target_m= re_mod.search(r"TARGET PRIS[:\s]+\$?([\d,.]+)", analyse)
+                  anb   = anb_m.group(1).strip() if anb_m else "?"
+                  res   = res_m.group(1).strip() if res_m else ""
+                  entry = entry_m.group(1) if entry_m else "?"
+                  stop  = stop_m.group(1)  if stop_m  else "?"
+                  target= target_m.group(1) if target_m else "?"
+                  score = r.get("kombineret", r.get("screener", "?"))
+                  linjer.append(f"  {r['ticker']} ({r.get('sektor','')}) — {anb} — Score {score}")
+                  linjer.append(f"  Entry: ${entry} | Stop: ${stop} | Target: ${target}")
+                  if res:
+                      linjer.append(f"  {res[:120]}")
+                  linjer.append("")
+          else:
+              linjer.append("Ingen stærke signaler i dag.")
+
+          linjer.append("─" * 50)
+          linjer.append("Åbn appen: https://share.streamlit.io (se README for URL)")
+
+          mail_tekst = "\n".join(linjer)
+          # Gem til fil så næste step kan læse den
+          with open("/tmp/mail_indhold.txt", "w", encoding="utf-8") as f:
+              f.write(mail_tekst)
+
+          print("Mail-indhold genereret:")
+          print(mail_tekst)
+          PYTHON
+
+      - name: Send Discord besked med dagens signaler
+        env:
+          DISCORD_WEBHOOK: ${{ https://discord.com/api/webhooks/1513306543188217856/WkY6iXUVtJP7dE170OPCQeJvPDvRPjtYSI70rwJYSaTzwRkqthODJgriF7CkSdTzIzQR }}
+        run: |
+          python3 << 'PYTHON'
+          import json, os, re, urllib.request
+
+          webhook_url = os.environ.get("DISCORD_WEBHOOK", "")
+          if not webhook_url:
+              print("Ingen DISCORD_WEBHOOK sat — springer over")
+              exit(0)
+
+          # Læs resultater
+          try:
+              with open("data/daily_brief_seneste.json") as f:
+                  brief = json.load(f)
+          except:
+              brief = {}
+          try:
+              with open("data/makro_seneste.json") as f:
+                  makro = json.load(f)
+          except:
+              makro = {}
+
+          dato  = brief.get("dato", "ukendt")
+          vix   = makro.get("vix", 0)
+          sp    = makro.get("sp_status", "?")
+          sp1m  = makro.get("sp_1m_afkast", 0)
+          kands = brief.get("top_kandidater", [])
+
+          # Makro farve
+          if vix < 20:   makro_emoji = "🟢"
+          elif vix < 27: makro_emoji = "🟡"
+          else:           makro_emoji = "🔴"
+
+          # Byg Discord embed
+          fields = []
+          for r in kands[:5]:
+              analyse = r.get("analyse", "")
+              anb_m   = re.search(r"ANBEFALING[:\s]+([A-ZÆØÅ ]+)", analyse)
+              res_m   = re.search(r"RESUMÉ[:\s]+(.{10,120})", analyse)
+              entry_m = re.search(r"ENTRY PRIS[:\s]+\$?([\d,.]+)", analyse)
+              stop_m  = re.search(r"STOP LOSS[:\s]+\$?([\d,.]+)", analyse)
+              target_m= re.search(r"TARGET PRIS[:\s]+\$?([\d,.]+)", analyse)
+              anb    = anb_m.group(1).strip() if anb_m else "?"
+              resume = res_m.group(1).strip()[:100] if res_m else ""
+              entry  = entry_m.group(1) if entry_m else "?"
+              stop   = stop_m.group(1)  if stop_m  else "?"
+              target = target_m.group(1) if target_m else "?"
+              score  = r.get("kombineret", r.get("screener", "?"))
+
+              if "KØB" in anb:   signal_emoji = "🟢"
+              elif "SÆLG" in anb: signal_emoji = "🔴"
+              else:               signal_emoji = "🟡"
+
+              felt_navn  = f"{signal_emoji} {r['ticker']} — {anb} (Score {score})"
+              felt_værdi = f"Entry **${entry}** | Stop **${stop}** | Target **${target}**"
+              if resume:
+                  felt_værdi += f"\n_{resume}_"
+
+              fields.append({"name": felt_navn, "value": felt_værdi, "inline": False})
+
+          if not fields:
+              fields.append({"name": "Ingen signaler", "value": "Ingen aktier bestod conviction-filteret i dag.", "inline": False})
+
+          embed = {
+              "title": f"📈 AI Aktie Rådgiver — {dato}",
+              "color": 0x4ade80 if vix < 20 else 0xfacc15 if vix < 27 else 0xf87171,
+              "fields": fields,
+              "footer": {
+                  "text": f"{makro_emoji} VIX {vix:.1f} | SP500 {sp} {sp1m:+.1f}% 1M | Groq 70b analyse"
+              }
+          }
+
+          payload = json.dumps({"embeds": [embed]}).encode("utf-8")
+          req = urllib.request.Request(
+              webhook_url,
+              data=payload,
+              headers={"Content-Type": "application/json"},
+              method="POST"
+          )
+          try:
+              urllib.request.urlopen(req)
+              print("Discord besked sendt!")
+          except Exception as e:
+              print(f"Discord fejl: {e}")
+          PYTHON
