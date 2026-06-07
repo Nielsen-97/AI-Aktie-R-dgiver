@@ -1,0 +1,81 @@
+name: AI Aktie Rådgiver — Daglig Scanning
+
+on:
+  # Kør kl. 07:00 dansk tid (= 05:00 UTC om sommeren, 06:00 UTC om vinteren)
+  # Vi bruger 05:00 UTC som dækker sommertid (CEST = UTC+2)
+  schedule:
+    - cron: "0 5 * * 1-5"   # Mandag–fredag kl 07:00 dansk sommertid
+
+  # Tillad manuel kørsel fra GitHub UI
+  workflow_dispatch:
+    inputs:
+      scanning_type:
+        description: "Scanning type"
+        required: true
+        default: "komplet"
+        type: choice
+        options:
+          - hurtig
+          - komplet
+
+jobs:
+  daglig-scanning:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    permissions:
+      contents: write   # Tillader at skrive resultater tilbage til repo
+
+    steps:
+      # ── 1. Hent kode ──────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Python setup ───────────────────────────────────
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      # ── 3. Installer pakker ───────────────────────────────
+      - name: Installer afhængigheder
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ── 4. Kør makro ──────────────────────────────────────
+      - name: Hent makro (VIX + SP500 + renter)
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_ACTIONS: "true"
+        run: python engine.py makro
+
+      # ── 5. Kør screener ───────────────────────────────────
+      - name: Kør screener (alle sektorer)
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_ACTIONS: "true"
+        run: |
+          if [ "${{ github.event.inputs.scanning_type }}" = "hurtig" ]; then
+            python engine.py screener
+          else
+            python engine.py screener --komplet
+          fi
+
+      # ── 6. Kør Groq dyb analyse ───────────────────────────
+      - name: Groq 70b dyb analyse af top kandidater
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GITHUB_ACTIONS: "true"
+        run: python engine.py dyb
+
+      # ── 7. Gem resultater tilbage til repo ─────────────────
+      - name: Gem analyse-resultater til repository
+        run: |
+          git config user.name  "AI Aktie Bot"
+          git config user.email "bot@ai-aktie-raadgiver.dk"
+          git add data/screener_seneste.json data/daily_brief_seneste.json data/makro_seneste.json || true
+          git add data/alerts.json || true
+          git diff --staged --quiet || git commit -m "📈 Daglig scanning $(date +'%Y-%m-%d %H:%M UTC')"
+          git push
