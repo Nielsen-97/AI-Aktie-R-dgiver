@@ -148,7 +148,7 @@ jobs:
 
       - name: Send Discord besked med dagens signaler
         env:
-          DISCORD_WEBHOOK: ${{ https://discord.com/api/webhooks/1513306543188217856/WkY6iXUVtJP7dE170OPCQeJvPDvRPjtYSI70rwJYSaTzwRkqthODJgriF7CkSdTzIzQR }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         run: |
           python3 << 'PYTHON'
           import json, os, re, urllib.request
