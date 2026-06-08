@@ -73,163 +73,122 @@ jobs:
           git diff --staged --quiet || git commit -m "📈 Daglig scanning $(date +'%Y-%m-%d %H:%M UTC')"
           git push
 
-      # ── Send mail med dagens signaler ─────────────────────
-      - name: Læs scanningsresultater
-        id: resultater
+      # ── Send Discord notifikation ──────────────────────────
+      - name: Send Discord notifikation
         env:
-          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           GITHUB_ACTIONS: "true"
         run: |
           python3 << 'PYTHON'
-          import json, os
+          import json, os, re, requests
+
+          discord_url = os.getenv("DISCORD_WEBHOOK", "")
+          if not discord_url:
+              print("Ingen DISCORD_WEBHOOK sat — springer over")
+              exit(0)
 
           # Læs brief
           try:
-              with open("data/daily_brief_seneste.json") as f:
+              with open("data/daily_brief_seneste.json", encoding="utf-8") as f:
                   brief = json.load(f)
-          except:
+          except Exception as e:
+              print(f"Kunne ikke læse brief: {e}")
               brief = {}
 
           # Læs makro
           try:
-              with open("data/makro_seneste.json") as f:
-                  makro = json.load(f)
-          except:
-              makro = {}
-
-          # Byg mail-indhold
-          dato = brief.get("dato", "ukendt")
-          vix  = makro.get("vix", "?")
-          sp   = makro.get("sp_status", "?")
-          kands = brief.get("top_kandidater", [])
-
-          linjer = []
-          linjer.append(f"AI Aktie Rådgiver — Daglig Scanning {dato}")
-          linjer.append("=" * 50)
-          linjer.append(f"Makro: VIX {vix:.1f} | SP500 {sp}")
-          linjer.append("")
-
-          if kands:
-              linjer.append(f"SIGNALER ({len(kands)} analyseret af Groq 70b):")
-              linjer.append("")
-              for r in kands:
-                  analyse = r.get("analyse", "")
-                  import re as re_mod
-                  anb_m = re_mod.search(r"ANBEFALING[:\s]+([A-ZÆØÅ ]+)", analyse)
-                  res_m = re_mod.search(r"RESUMÉ[:\s]+(.{10,150})", analyse)
-                  entry_m = re_mod.search(r"ENTRY PRIS[:\s]+\$?([\d,.]+)", analyse)
-                  stop_m  = re_mod.search(r"STOP LOSS[:\s]+\$?([\d,.]+)", analyse)
-                  target_m= re_mod.search(r"TARGET PRIS[:\s]+\$?([\d,.]+)", analyse)
-                  anb   = anb_m.group(1).strip() if anb_m else "?"
-                  res   = res_m.group(1).strip() if res_m else ""
-                  entry = entry_m.group(1) if entry_m else "?"
-                  stop  = stop_m.group(1)  if stop_m  else "?"
-                  target= target_m.group(1) if target_m else "?"
-                  score = r.get("kombineret", r.get("screener", "?"))
-                  linjer.append(f"  {r['ticker']} ({r.get('sektor','')}) — {anb} — Score {score}")
-                  linjer.append(f"  Entry: ${entry} | Stop: ${stop} | Target: ${target}")
-                  if res:
-                      linjer.append(f"  {res[:120]}")
-                  linjer.append("")
-          else:
-              linjer.append("Ingen stærke signaler i dag.")
-
-          linjer.append("─" * 50)
-          linjer.append("Åbn appen: https://share.streamlit.io (se README for URL)")
-
-          mail_tekst = "\n".join(linjer)
-          # Gem til fil så næste step kan læse den
-          with open("/tmp/mail_indhold.txt", "w", encoding="utf-8") as f:
-              f.write(mail_tekst)
-
-          print("Mail-indhold genereret:")
-          print(mail_tekst)
-          PYTHON
-
-      - name: Send Discord besked med dagens signaler
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        run: |
-          python3 << 'PYTHON'
-          import json, os, re, urllib.request
-
-          webhook_url = os.environ.get("DISCORD_WEBHOOK", "")
-          if not webhook_url:
-              print("Ingen DISCORD_WEBHOOK sat — springer over")
-              exit(0)
-
-          # Læs resultater
-          try:
-              with open("data/daily_brief_seneste.json") as f:
-                  brief = json.load(f)
-          except:
-              brief = {}
-          try:
-              with open("data/makro_seneste.json") as f:
+              with open("data/makro_seneste.json", encoding="utf-8") as f:
                   makro = json.load(f)
           except:
               makro = {}
 
           dato  = brief.get("dato", "ukendt")
-          vix   = makro.get("vix", 0)
+          vix   = float(makro.get("vix", 0) or 0)
           sp    = makro.get("sp_status", "?")
-          sp1m  = makro.get("sp_1m_afkast", 0)
+          sp1m  = float(makro.get("sp_1m_afkast", 0) or 0)
+          just  = float(makro.get("justering", 0) or 0)
           kands = brief.get("top_kandidater", [])
 
-          # Makro farve
-          if vix < 20:   makro_emoji = "🟢"
-          elif vix < 27: makro_emoji = "🟡"
-          else:           makro_emoji = "🔴"
+          # Discord embed farve: grøn hvis bull, rød hvis bear
+          embed_farve = 0x4ade80 if "Optrend" in sp else 0xf87171
 
-          # Byg Discord embed
+          # Byg embed fields for hvert signal
           fields = []
-          for r in kands[:5]:
-              analyse = r.get("analyse", "")
-              anb_m   = re.search(r"ANBEFALING[:\s]+([A-ZÆØÅ ]+)", analyse)
-              res_m   = re.search(r"RESUMÉ[:\s]+(.{10,120})", analyse)
-              entry_m = re.search(r"ENTRY PRIS[:\s]+\$?([\d,.]+)", analyse)
-              stop_m  = re.search(r"STOP LOSS[:\s]+\$?([\d,.]+)", analyse)
-              target_m= re.search(r"TARGET PRIS[:\s]+\$?([\d,.]+)", analyse)
-              anb    = anb_m.group(1).strip() if anb_m else "?"
-              resume = res_m.group(1).strip()[:100] if res_m else ""
-              entry  = entry_m.group(1) if entry_m else "?"
-              stop   = stop_m.group(1)  if stop_m  else "?"
-              target = target_m.group(1) if target_m else "?"
-              score  = r.get("kombineret", r.get("screener", "?"))
 
-              if "KØB" in anb:   signal_emoji = "🟢"
-              elif "SÆLG" in anb: signal_emoji = "🔴"
-              else:               signal_emoji = "🟡"
+          # Makro felt
+          fields.append({
+              "name": "📊 Makro",
+              "value": f"VIX **{vix:.1f}** | SP500 **{sp}** {sp1m:+.1f}% 1M | Justering **{just:+.1f}**",
+              "inline": False
+          })
 
-              felt_navn  = f"{signal_emoji} {r['ticker']} — {anb} (Score {score})"
-              felt_værdi = f"Entry **${entry}** | Stop **${stop}** | Target **${target}**"
-              if resume:
-                  felt_værdi += f"\n_{resume}_"
+          if kands:
+              for r in kands[:5]:  # Max 5 signaler
+                  analyse = r.get("analyse", "")
 
-              fields.append({"name": felt_navn, "value": felt_værdi, "inline": False})
+                  anb_m    = re.search(r"ANBEFALING[:\s]+([A-ZÆØÅ ]+)", analyse)
+                  entry_m  = re.search(r"ENTRY PRIS[:\s]+\$?([\d,.]+)", analyse)
+                  stop_m   = re.search(r"STOP LOSS[:\s]+\$?([\d,.]+)", analyse)
+                  target_m = re.search(r"TARGET PRIS[:\s]+\$?([\d,.]+)", analyse)
+                  prob_m   = re.search(r"SANDSYNLIGHED[:\s]+(\d+)%?", analyse)
+                  res_m    = re.search(r"RESUMÉ[:\s]+(.{10,120})", analyse)
 
-          if not fields:
-              fields.append({"name": "Ingen signaler", "value": "Ingen aktier bestod conviction-filteret i dag.", "inline": False})
+                  anb    = anb_m.group(1).strip()    if anb_m    else "VENT"
+                  entry  = entry_m.group(1)          if entry_m  else "?"
+                  stop   = stop_m.group(1)           if stop_m   else "?"
+                  target = target_m.group(1)         if target_m else "?"
+                  prob   = prob_m.group(1)           if prob_m   else "?"
+                  resume = res_m.group(1).strip()    if res_m    else ""
 
-          embed = {
-              "title": f"📈 AI Aktie Rådgiver — {dato}",
-              "color": 0x4ade80 if vix < 20 else 0xfacc15 if vix < 27 else 0xf87171,
-              "fields": fields,
-              "footer": {
-                  "text": f"{makro_emoji} VIX {vix:.1f} | SP500 {sp} {sp1m:+.1f}% 1M | Groq 70b analyse"
-              }
+                  score  = r.get("kombineret", r.get("screener", "?"))
+                  sektor = r.get("sektor", "")
+
+                  # Emoji baseret på anbefaling
+                  if "KØB" in anb:
+                      emoji = "🟢"
+                  elif "SÆLG" in anb:
+                      emoji = "🔴"
+                  else:
+                      emoji = "🟡"
+
+                  felt_tekst = (
+                      f"**{anb}** — Score {score}/10\n"
+                      f"Entry: **${entry}** | Stop: ${stop} | Target: **${target}**\n"
+                      f"Sandsynlighed: {prob}%\n"
+                  )
+                  if resume:
+                      felt_tekst += f"_{resume[:100]}_"
+
+                  fields.append({
+                      "name": f"{emoji} {r['ticker']} · {sektor}",
+                      "value": felt_tekst,
+                      "inline": False
+                  })
+          else:
+              fields.append({
+                  "name": "📭 Ingen signaler",
+                  "value": "Ingen aktier passerede conviction-filteret i dag.",
+                  "inline": False
+              })
+
+          # Byg Discord payload
+          payload = {
+              "username": "AI Aktie Rådgiver",
+              "avatar_url": "https://cdn-icons-png.flaticon.com/512/2103/2103633.png",
+              "embeds": [{
+                  "title": f"📈 Daglig Scanning — {dato}",
+                  "color": embed_farve,
+                  "fields": fields,
+                  "footer": {
+                      "text": "Groq 70b · RSI/MACD · Insider · Conviction filter"
+                  }
+              }]
           }
 
-          payload = json.dumps({"embeds": [embed]}).encode("utf-8")
-          req = urllib.request.Request(
-              webhook_url,
-              data=payload,
-              headers={"Content-Type": "application/json"},
-              method="POST"
-          )
-          try:
-              urllib.request.urlopen(req)
-              print("Discord besked sendt!")
-          except Exception as e:
-              print(f"Discord fejl: {e}")
+          # Send til Discord
+          r = requests.post(discord_url, json=payload, timeout=15)
+          if r.status_code in [200, 204]:
+              print(f"Discord notifikation sendt! ({len(kands)} signaler)")
+          else:
+              print(f"Discord fejl: {r.status_code} — {r.text}")
           PYTHON
