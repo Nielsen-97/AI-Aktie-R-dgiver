@@ -769,7 +769,7 @@ with tab3:
                             wl2 = pf.get("watchlist",[])
                             ejede2 = [h["ticker"] for h in pf.get("holdings",[])]
                             if r["ticker"] not in wl2 and r["ticker"] not in ejede2:
-                                if st.button("+ Watchlist", key=f"wl_opd2_{i}_{r['ticker']}", use_container_width=True):
+                                if st.button("+ Watchlist", key=f"tab3_opd_{i}_{r['ticker']}", use_container_width=True):
                                     wl2.append(r["ticker"]); pf["watchlist"]=wl2
                                     engine.gem_portfolio(pf); st.rerun()
 
