@@ -769,7 +769,7 @@ with tab3:
                             wl2 = pf.get("watchlist",[])
                             ejede2 = [h["ticker"] for h in pf.get("holdings",[])]
                             if r["ticker"] not in wl2 and r["ticker"] not in ejede2:
-                                if st.button("+ Watchlist", key=f"tab3_opd_{i}_{r['ticker']}", use_container_width=True):
+                                if st.button("+ Watchlist", key=f"wl_opd2_{i}_{r['ticker']}", use_container_width=True):
                                     wl2.append(r["ticker"]); pf["watchlist"]=wl2
                                     engine.gem_portfolio(pf); st.rerun()
 
@@ -881,31 +881,24 @@ with tab4:
                     st.success(f"{h['ticker']} solgt til ${h['pris_nu']:.2f}!")
                     st.cache_data.clear(); st.rerun()
 
-    # Historik
+    # Historik fra JSON
     sec("Afsluttede Handler", "margin-top:2rem")
-    conn = __import__("sqlite3").connect(engine.DB_FILE)
-    c = conn.cursor()
-    c.execute("""
-        SELECT ticker, platform, antal, koebspris, dato_kobt, analyse_tekst
-        FROM aktive_handler WHERE status='solgt' ORDER BY dato_kobt DESC LIMIT 20
-    """)
-    solgte = c.fetchall(); conn.close()
+    alle_handler = engine._safe_json_load(engine.AKTIVE_HANDLER_FILE) or []
+    solgte = [h for h in alle_handler if h.get("status") == "solgt"]
     if not solgte:
         st.markdown('<p style="color:#4a4a6a;font-size:.82rem">Ingen afsluttede handler endnu.</p>', unsafe_allow_html=True)
-    for row in solgte:
-        ticker2,plat2,antal2,kp2,dato2,analyse2 = row
-        # Udtræk salgsinfo fra analyse_tekst
-        salg_m = re.search(r"\[SOLGT.*?à ([\d.]+).*?([\+\-][\d.]+%)", analyse2 or "")
-        salgspris2 = salg_m.group(1) if salg_m else "–"
-        afk2 = salg_m.group(2) if salg_m else "–"
-        afk_c2 = "up" if afk2.startswith("+") else "down" if afk2.startswith("-") else ""
+    for h in solgte:
+        afk2 = h.get("afkast_pct", 0) or 0
+        afk_c2 = "up" if afk2 >= 0 else "down"
+        kp2 = h.get("koebspris", 0)
+        sp2 = h.get("salgspris", 0)
         st.markdown(
             f'<div class="bt-row">'
-            f'<span style="font-weight:600;min-width:60px">{ticker2}</span>'
-            f'<span style="color:#6a6a8a;min-width:80px">{dato2}</span>'
-            f'<span style="color:#6a6a8a">{antal2} stk</span>'
-            f'<span style="color:#6a6a8a">${kp2:.2f} → ${salgspris2}</span>'
-            f'<span class="{afk_c2}" style="font-weight:700">{afk2}</span>'
+            f'<span style="font-weight:600;min-width:60px">{h.get("ticker","")}</span>'
+            f'<span style="color:#6a6a8a;min-width:80px">{h.get("dato_solgt","")}</span>'
+            f'<span style="color:#6a6a8a">{h.get("antal",0)} stk</span>'
+            f'<span style="color:#6a6a8a">${kp2:.2f} → ${sp2:.2f}</span>'
+            f'<span class="{afk_c2}" style="font-weight:700">{afk2:+.1f}%</span>'
             f'</div>', unsafe_allow_html=True)
 
 
@@ -957,3 +950,4 @@ with tab5:
                 f'<span style="color:#6a6a8a">{r.get("pris_koeb",0):.2f}→{r.get("pris_30d",0):.2f}</span>'
                 f'<span style="color:{"#4ade80" if afl>0 else "#f87171"};font-weight:700">{afl:+.1f}%</span>'
                 f'</div>', unsafe_allow_html=True)
+
