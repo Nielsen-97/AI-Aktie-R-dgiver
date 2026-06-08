@@ -957,4 +957,3 @@ with tab5:
                 f'<span style="color:#6a6a8a">{r.get("pris_koeb",0):.2f}→{r.get("pris_30d",0):.2f}</span>'
                 f'<span style="color:{"#4ade80" if afl>0 else "#f87171"};font-weight:700">{afl:+.1f}%</span>'
                 f'</div>', unsafe_allow_html=True)
-
