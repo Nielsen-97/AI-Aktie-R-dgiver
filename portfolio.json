@@ -1,0 +1,15 @@
+{
+  "holdings": [
+    {"ticker": "NYIBDA.CO", "navn": "Nykredit Baeredygtige Aktier", "platform": "nordnet", "antal": 5.0, "koebspris": 193.96, "type": "fond", "strategi": "hold_forever"},
+    {"ticker": "SPIDJB.CO", "navn": "Sparindex DJ Global", "platform": "nordnet", "antal": 26.0, "koebspris": 188.28, "type": "fond", "strategi": "hold_forever"},
+    {"ticker": "MMINAA.CO", "navn": "MMI Nye Aktiemarkeder", "platform": "nordnet", "antal": 3.0, "koebspris": 169.61, "type": "fond", "strategi": "hold_forever"},
+    {"ticker": "SPIEMIKL.CO", "navn": "Sparinvest Emerging Markets", "platform": "nordnet", "antal": 16.0, "koebspris": 142.77, "type": "fond", "strategi": "hold_forever"},
+    {"ticker": "MAJGO.CO", "navn": "Maj Invest Globale Obligationer", "platform": "nordnet", "antal": 19.0, "koebspris": 101.05, "type": "obligation", "strategi": "hold_forever"}
+  ],
+  "cash": {
+    "nordnet_dkk": 6000.0,
+    "etoro_usd": 106.85,
+    "endavu_dkk": 0.0
+  },
+  "watchlist": ["AAPL", "MSFT", "NVDA", "TSLA", "GOOGL", "META", "AMZN", "AMD"]
+}
