@@ -59,50 +59,24 @@ except Exception:
 # ════════════════════════════════════════════════════════════
 # DATABASE
 # ════════════════════════════════════════════════════════════
-def init_db():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS holdings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ticker TEXT, navn TEXT, platform TEXT,
-        antal REAL, koebspris REAL, type TEXT, strategi TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS cash (platform TEXT PRIMARY KEY, belob REAL)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS watchlist (ticker TEXT PRIMARY KEY)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS screener_results (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ticker TEXT, sektor TEXT, samlet REAL,
-        fundamental REAL, teknisk REAL, sentiment REAL,
-        anbefaling TEXT, dato TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS brief_candidates (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ticker TEXT, sektor TEXT, screener_score REAL,
-        llama_score REAL, kombineret REAL, analyse TEXT, dato TEXT)''')
-    # Ny tabel: performance tracking til backtesting
-    c.execute('''CREATE TABLE IF NOT EXISTS anbefalinger_historik (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ticker TEXT, dato TEXT, anbefaling TEXT,
-        pris_ved_anbefaling REAL, score REAL,
-        pris_7d REAL, pris_30d REAL, afkast_30d REAL)''')
-    # Aktive handler — positioner købt via systemet med stop-loss og target
-    c.execute('''CREATE TABLE IF NOT EXISTS aktive_handler (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        ticker TEXT NOT NULL,
-        navn TEXT,
-        platform TEXT,
-        antal REAL,
-        koebspris REAL,
-        stop_loss REAL,
-        target REAL,
-        beloeb_dkk REAL,
-        valuta TEXT,
-        dato_kobt TEXT,
-        score_ved_koeb REAL,
-        analyse_tekst TEXT,
-        status TEXT DEFAULT "aktiv")''')
-    conn.commit()
-    conn.close()
+# JSON-filer bruges i stedet for SQLite — virker på Streamlit Cloud og GitHub
+PORTFOLIO_FILE     = os.path.join(DATA_DIR, "portfolio.json")
+AKTIVE_HANDLER_FILE = os.path.join(DATA_DIR, "aktive_handler.json")
+BACKTEST_HISTORIK_FILE = os.path.join(DATA_DIR, "backtest_historik.json")
 
-init_db()
+def _init_json_filer():
+    """Opret standard JSON-filer hvis de ikke eksisterer."""
+    if not os.path.exists(PORTFOLIO_FILE):
+        with open(PORTFOLIO_FILE, "w") as f:
+            json.dump({"holdings": [], "cash": {"nordnet_dkk": 0, "etoro_usd": 0, "endavu_dkk": 0}, "watchlist": []}, f)
+    if not os.path.exists(AKTIVE_HANDLER_FILE):
+        with open(AKTIVE_HANDLER_FILE, "w") as f:
+            json.dump([], f)
+    if not os.path.exists(BACKTEST_HISTORIK_FILE):
+        with open(BACKTEST_HISTORIK_FILE, "w") as f:
+            json.dump([], f)
+
+_init_json_filer()
 
 def log(besked):
     t = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -118,137 +92,119 @@ def log(besked):
 # PORTFOLIO
 # ════════════════════════════════════════════════════════════
 def indlaes_portfolio():
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("SELECT ticker, navn, platform, antal, koebspris, type, strategi FROM holdings")
-    holdings = [{"ticker": r[0], "navn": r[1], "platform": r[2],
-                 "antal": r[3], "koebspris": r[4], "type": r[5], "strategi": r[6]}
-                for r in c.fetchall()]
-    c.execute("SELECT platform, belob FROM cash")
-    cash = {r[0]: r[1] for r in c.fetchall()}
-    # Sørg for alle tre platforme er til stede
+    """Læs portfolio fra JSON-fil — virker på Streamlit Cloud."""
+    data = _safe_json_load(PORTFOLIO_FILE)
+    if not data:
+        data = {"holdings": [], "cash": {}, "watchlist": []}
     for platform in ["nordnet_dkk", "etoro_usd", "endavu_dkk"]:
-        if platform not in cash:
-            cash[platform] = 0
-    c.execute("SELECT ticker FROM watchlist")
-    watchlist = [r[0] for r in c.fetchall()]
-    conn.close()
-    return {"holdings": holdings, "cash": cash, "watchlist": watchlist}
+        if platform not in data.get("cash", {}):
+            data.setdefault("cash", {})[platform] = 0
+    return data
 
 def gem_portfolio(data):
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("DELETE FROM holdings")
-    for h in data["holdings"]:
-        c.execute(
-            "INSERT INTO holdings (ticker, navn, platform, antal, koebspris, type, strategi) VALUES (?,?,?,?,?,?,?)",
-            (h["ticker"], h["navn"], h["platform"], h["antal"],
-             h["koebspris"], h["type"], h["strategi"]))
-    c.execute("DELETE FROM cash")
-    for k, v in data["cash"].items():
-        c.execute("INSERT INTO cash (platform, belob) VALUES (?,?)", (k, v))
-    c.execute("DELETE FROM watchlist")
-    for t in data["watchlist"]:
-        c.execute("INSERT INTO watchlist (ticker) VALUES (?)", (t,))
-    conn.commit()
-    conn.close()
+    """Gem portfolio til JSON-fil — synkroniseres til GitHub."""
+    with open(PORTFOLIO_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
 
 # ════════════════════════════════════════════════════════════
 # AKTIVE HANDLER — køb/sælg via systemet
 # ════════════════════════════════════════════════════════════
 def registrer_koeb(ticker, navn, platform, antal, koebspris,
                    stop_loss, target, beloeb, valuta, score, analyse):
-    """Gem et køb i aktive_handler og træk cash fra portfolio."""
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("""
-        INSERT INTO aktive_handler
-        (ticker, navn, platform, antal, koebspris, stop_loss, target,
-         beloeb_dkk, valuta, dato_kobt, score_ved_koeb, analyse_tekst, status)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'aktiv')
-    """, (ticker, navn, platform, antal, koebspris, stop_loss, target,
-          beloeb, valuta, datetime.now().strftime("%Y-%m-%d"), score, analyse))
+    """Gem et køb i aktive_handler.json og træk cash fra portfolio.json."""
+    # Hent aktive handler
+    handler = _safe_json_load(AKTIVE_HANDLER_FILE) or []
+    nyt_id = max((h.get("id", 0) for h in handler), default=0) + 1
+    handler.append({
+        "id": nyt_id, "ticker": ticker, "navn": navn, "platform": platform,
+        "antal": antal, "koebspris": koebspris, "stop_loss": stop_loss,
+        "target": target, "beloeb": beloeb, "valuta": valuta,
+        "dato_kobt": datetime.now().strftime("%Y-%m-%d"),
+        "score_ved_koeb": score, "analyse_tekst": analyse, "status": "aktiv"
+    })
+    with open(AKTIVE_HANDLER_FILE, "w", encoding="utf-8") as f:
+        json.dump(handler, f, ensure_ascii=False, indent=2)
 
-    # Tilføj også til holdings så det vises i portefølje
-    c.execute("""
-        INSERT INTO holdings (ticker, navn, platform, antal, koebspris, type, strategi)
-        VALUES (?,?,?,?,?,'aktie','aktiv')
-    """, (ticker, navn, platform, antal, koebspris))
-
-    # Træk cash fra den valgte platform
+    # Tilføj til portfolio holdings
+    pf = indlaes_portfolio()
+    pf["holdings"].append({
+        "ticker": ticker, "navn": navn, "platform": platform,
+        "antal": antal, "koebspris": koebspris, "type": "aktie", "strategi": "aktiv"
+    })
+    # Træk cash fra platform
     if platform == "etoro":
-        c.execute("UPDATE cash SET belob = MAX(0, belob - ?) WHERE platform='etoro_usd'", (beloeb,))
+        pf["cash"]["etoro_usd"] = max(0, pf["cash"].get("etoro_usd", 0) - beloeb)
     elif platform == "endavu":
-        c.execute("UPDATE cash SET belob = MAX(0, belob - ?) WHERE platform='endavu_dkk'", (beloeb,))
+        pf["cash"]["endavu_dkk"] = max(0, pf["cash"].get("endavu_dkk", 0) - beloeb)
     else:
-        c.execute("UPDATE cash SET belob = MAX(0, belob - ?) WHERE platform='nordnet_dkk'", (beloeb,))
-
-    conn.commit()
-    conn.close()
+        pf["cash"]["nordnet_dkk"] = max(0, pf["cash"].get("nordnet_dkk", 0) - beloeb)
+    gem_portfolio(pf)
     log(f"KØBT: {ticker} {antal} stk à {koebspris} via {platform} — SL:{stop_loss} T:{target}")
 
 def registrer_salg(handler_id, salgspris, aarsag="Manuel"):
-    """Marker en handel som solgt og tilføj cash tilbage."""
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("SELECT ticker, platform, antal, koebspris, beloeb_dkk, valuta FROM aktive_handler WHERE id=?",
-              (handler_id,))
-    row = c.fetchone()
-    if not row:
-        conn.close()
+    """Marker handel som solgt i aktive_handler.json og tilføj cash tilbage."""
+    handler = _safe_json_load(AKTIVE_HANDLER_FILE) or []
+    h = next((x for x in handler if x.get("id") == handler_id), None)
+    if not h:
         return
-    ticker, platform, antal, koebspris, beloeb, valuta = row
+    ticker   = h["ticker"]
+    platform = h["platform"]
+    antal    = h["antal"]
+    koebspris= h["koebspris"]
+    beloeb   = h.get("beloeb", antal * koebspris)
     salgsvaerdi = antal * salgspris if salgspris > 0 else beloeb
     afkast_pct  = (salgspris / koebspris - 1) * 100 if koebspris > 0 else 0
 
-    c.execute("""
-        UPDATE aktive_handler
-        SET status=?, analyse_tekst = analyse_tekst || ?
-        WHERE id=?
-    """, ("solgt", f"\n[SOLGT {datetime.now().strftime('%Y-%m-%d')} à {salgspris} — {aarsag} — {afkast_pct:+.1f}%]",
-          handler_id))
+    h["status"] = "solgt"
+    h["analyse_tekst"] = (h.get("analyse_tekst") or "") +         f"\n[SOLGT {datetime.now().strftime('%Y-%m-%d')} à {salgspris} — {aarsag} — {afkast_pct:+.1f}%]"
+    h["salgspris"] = salgspris
+    h["afkast_pct"] = round(afkast_pct, 2)
+    h["dato_solgt"] = datetime.now().strftime("%Y-%m-%d")
 
-    # Fjern fra holdings
-    c.execute("DELETE FROM holdings WHERE ticker=? AND platform=?", (ticker, platform))
+    with open(AKTIVE_HANDLER_FILE, "w", encoding="utf-8") as f:
+        json.dump(handler, f, ensure_ascii=False, indent=2)
 
+    # Fjern fra portfolio holdings
+    pf = indlaes_portfolio()
+    pf["holdings"] = [x for x in pf["holdings"]
+                      if not (x["ticker"] == ticker and x["platform"] == platform and x.get("strategi") == "aktiv")]
     # Tilsæt cash
     if platform == "etoro":
-        c.execute("UPDATE cash SET belob = belob + ? WHERE platform='etoro_usd'", (salgsvaerdi,))
+        pf["cash"]["etoro_usd"] = pf["cash"].get("etoro_usd", 0) + salgsvaerdi
     elif platform == "endavu":
-        c.execute("UPDATE cash SET belob = belob + ? WHERE platform='endavu_dkk'", (salgsvaerdi,))
+        pf["cash"]["endavu_dkk"] = pf["cash"].get("endavu_dkk", 0) + salgsvaerdi
     else:
-        c.execute("UPDATE cash SET belob = belob + ? WHERE platform='nordnet_dkk'", (salgsvaerdi,))
-
-    conn.commit()
-    conn.close()
+        pf["cash"]["nordnet_dkk"] = pf["cash"].get("nordnet_dkk", 0) + salgsvaerdi
+    gem_portfolio(pf)
     log(f"SOLGT: {ticker} à {salgspris} ({aarsag}) — afkast {afkast_pct:+.1f}%")
 
 def hent_aktive_handler():
-    """Hent alle aktive handler med nuværende kurs og status."""
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
-    c.execute("""
-        SELECT id, ticker, navn, platform, antal, koebspris,
-               stop_loss, target, beloeb_dkk, valuta,
-               dato_kobt, score_ved_koeb, analyse_tekst, status
-        FROM aktive_handler WHERE status='aktiv'
-        ORDER BY dato_kobt DESC
-    """)
-    rækker = c.fetchall()
-    conn.close()
+    """Hent alle aktive handler fra JSON med nuværende kurs og status."""
+    alle = _safe_json_load(AKTIVE_HANDLER_FILE) or []
+    rækker_data = [h for h in alle if h.get("status") == "aktiv"]
 
     handler = []
-    for r in rækker:
-        (id_, ticker, navn, platform, antal, koebspris,
-         stop_loss, target, beloeb, valuta, dato, score, analyse, status) = r
+    for r in rækker_data:
+        id_      = r.get("id", 0)
+        ticker   = r.get("ticker", "")
+        navn     = r.get("navn", ticker)
+        platform = r.get("platform", "")
+        antal    = r.get("antal", 0)
+        koebspris= r.get("koebspris", 0)
+        stop_loss= r.get("stop_loss")
+        target   = r.get("target")
+        beloeb   = r.get("beloeb", 0)
+        valuta   = r.get("valuta", "DKK")
+        dato     = r.get("dato_kobt", "")
+        score    = r.get("score_ved_koeb", 5)
+        analyse  = r.get("analyse_tekst", "")
 
         k = hent_kurs(ticker)
-        pris_nu   = k["pris"]   if k else koebspris
-        change    = k["change"] if k else 0
-        afkast    = (pris_nu / koebspris - 1) * 100 if koebspris > 0 else 0
-        vaerdi    = antal * pris_nu
+        pris_nu = k["pris"]   if k else koebspris
+        change  = k["change"] if k else 0
+        afkast  = (pris_nu / koebspris - 1) * 100 if koebspris > 0 else 0
+        vaerdi  = antal * pris_nu
 
-        # Bestem signal
         signal = "OK"
         if stop_loss and pris_nu <= stop_loss:
             signal = "STOP_LOSS_HIT"
@@ -258,24 +214,13 @@ def hent_aktive_handler():
             signal = "STOR_TAB"
 
         handler.append({
-            "id":        id_,
-            "ticker":    ticker,
-            "navn":      navn or ticker,
-            "platform":  platform,
-            "antal":     antal,
-            "koebspris": koebspris,
-            "stop_loss": stop_loss,
-            "target":    target,
-            "beloeb":    beloeb,
-            "valuta":    valuta,
-            "dato":      dato,
-            "score":     score,
-            "analyse":   analyse,
-            "pris_nu":   pris_nu,
-            "change":    change,
-            "afkast":    round(afkast, 2),
-            "vaerdi":    round(vaerdi, 2),
-            "signal":    signal,
+            "id": id_, "ticker": ticker, "navn": navn or ticker,
+            "platform": platform, "antal": antal, "koebspris": koebspris,
+            "stop_loss": stop_loss, "target": target, "beloeb": beloeb,
+            "valuta": valuta, "dato": dato, "score": score, "analyse": analyse,
+            "pris_nu": pris_nu, "change": change,
+            "afkast": round(afkast, 2), "vaerdi": round(vaerdi, 2),
+            "signal": signal,
         })
     return handler
 
@@ -1159,23 +1104,24 @@ def analyser_med_llama(tekst, ticker, screener_data=None):
         return ""
 
 def _gem_anbefaling_historik(ticker, analyse, screener_data):
-    """Gem anbefaling i DB til backtesting."""
+    """Gem anbefaling i backtest_historik.json til backtesting."""
     try:
         k = hent_kurs(ticker)
         pris = k["pris"] if k else 0
         score = screener_data.get("samlet", 5) if screener_data else 5
-
         rec_m = re.search(r"ANBEFALING:\s*(\w+)", analyse)
         anbefaling = rec_m.group(1) if rec_m else "UKENDT"
 
-        conn = sqlite3.connect(DB_FILE)
-        c = conn.cursor()
-        c.execute(
-            "INSERT INTO anbefalinger_historik (ticker, dato, anbefaling, pris_ved_anbefaling, score) VALUES (?,?,?,?,?)",
-            (ticker, datetime.now().strftime("%Y-%m-%d"), anbefaling, pris, score)
-        )
-        conn.commit()
-        conn.close()
+        historik = _safe_json_load(BACKTEST_HISTORIK_FILE) or []
+        nyt_id = max((h.get("id",0) for h in historik), default=0) + 1
+        historik.append({
+            "id": nyt_id, "ticker": ticker,
+            "dato": datetime.now().strftime("%Y-%m-%d"),
+            "anbefaling": anbefaling, "pris_koeb": pris,
+            "score": score, "pris_30d": None, "afkast_30d": None
+        })
+        with open(BACKTEST_HISTORIK_FILE, "w", encoding="utf-8") as f:
+            json.dump(historik, f, ensure_ascii=False, indent=2)
     except:
         pass
 
@@ -1453,67 +1399,25 @@ def hent_alerts():
 # BACKTESTING
 # ════════════════════════════════════════════════════════════
 def koer_backtest():
-    """
-    Tjek om tidligere anbefalinger var rigtige.
-    Henter prisen 30 dage efter anbefaling og beregner afkast.
-    """
+    """Tjek om tidligere anbefalinger var rigtige — bruger JSON."""
     log("Kører backtest...")
-    conn = sqlite3.connect(DB_FILE)
-    c = conn.cursor()
+    historik = _safe_json_load(BACKTEST_HISTORIK_FILE) or []
+    graense  = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
 
-    # Hent anbefalinger der er 30+ dage gamle og mangler afkast
-    grænse_dato = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
-    c.execute("""
-        SELECT id, ticker, dato, anbefaling, pris_ved_anbefaling, score
-        FROM anbefalinger_historik
-        WHERE dato <= ? AND afkast_30d IS NULL
-    """, (grænse_dato,))
-    rækker = c.fetchall()
+    for item in historik:
+        if item.get("afkast_30d") is None and item.get("dato","") <= graense:
+            k = hent_kurs(item["ticker"])
+            if k:
+                pris_nu = k["pris"]
+                afkast  = round((pris_nu / item["pris_koeb"] - 1) * 100, 2) if item.get("pris_koeb",0) > 0 else 0
+                item["pris_30d"]  = pris_nu
+                item["afkast_30d"] = afkast
+                log(f"  {item['ticker']}: {item['anbefaling']} → {afkast:+.1f}%")
 
-    resultater = []
-    for row in rækker:
-        id_, ticker, dato, anbefaling, pris_koeb, score = row
-        k = hent_kurs(ticker)
-        if not k:
-            continue
-        pris_nu = k["pris"]
-        afkast  = round((pris_nu / pris_koeb - 1) * 100, 2) if pris_koeb > 0 else 0
+    with open(BACKTEST_HISTORIK_FILE, "w", encoding="utf-8") as f:
+        json.dump(historik, f, ensure_ascii=False, indent=2)
 
-        c.execute("""
-            UPDATE anbefalinger_historik
-            SET pris_30d = ?, afkast_30d = ?
-            WHERE id = ?
-        """, (pris_nu, afkast, id_))
-
-        korrekt = (anbefaling in ["KØB", "STÆRKT KØB"] and afkast > 0) or \
-                  (anbefaling == "SÆLG" and afkast < 0)
-
-        resultater.append({
-            "ticker":     ticker,
-            "dato":       dato,
-            "anbefaling": anbefaling,
-            "pris_koeb":  pris_koeb,
-            "pris_30d":   pris_nu,
-            "afkast_30d": afkast,
-            "score":      score,
-            "korrekt":    korrekt,
-        })
-        log(f"  {ticker}: {anbefaling} → {afkast:+.1f}% ({'✓' if korrekt else '✗'})")
-
-    conn.commit()
-
-    # Hent alle resultater til statistik
-    c.execute("""
-        SELECT ticker, dato, anbefaling, pris_ved_anbefaling, pris_30d, afkast_30d, score
-        FROM anbefalinger_historik
-        WHERE afkast_30d IS NOT NULL
-        ORDER BY dato DESC
-        LIMIT 50
-    """)
-    alle = [{"ticker": r[0], "dato": r[1], "anbefaling": r[2],
-             "pris_koeb": r[3], "pris_30d": r[4], "afkast_30d": r[5], "score": r[6]}
-            for r in c.fetchall()]
-    conn.close()
+    alle = [x for x in historik if x.get("afkast_30d") is not None]
 
     if alle:
         koeb_rækker = [r for r in alle if r["anbefaling"] in ["KØB", "STÆRKT KØB"]]
