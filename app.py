@@ -415,12 +415,12 @@ def vis_signal_kort(r, cash_dkk, cash_usd, cash_end, pf, vis_koeb=True):
                     f'<div style="font-family:Space Mono,monospace;font-size:.68rem;color:#4ade80;padding:.4rem 0">'
                     f'✓ Allerede i portefølje</div>', unsafe_allow_html=True)
             else:
-                if st.button(f"🟢 Køb {r['ticker']}", key=f"koeb_btn_{r['ticker']}", use_container_width=True):
+                if st.button(f"🟢 Køb {r['ticker']}", key=f"sig_koeb_{r['ticker']}", use_container_width=True):
                     st.session_state[f"vis_koeb_{r['ticker']}"] = True
         with k2:
             wl = pf.get("watchlist",[])
             if r["ticker"] not in wl and not allerede_købt:
-                if st.button(f"+ Watchlist", key=f"wl_{r['ticker']}", use_container_width=True):
+                if st.button(f"+ Watchlist", key=f"sig_wl_{r['ticker']}", use_container_width=True):
                     wl.append(r["ticker"]); pf["watchlist"]=wl
                     engine.gem_portfolio(pf); st.rerun()
 
@@ -769,7 +769,7 @@ with tab3:
                             wl2 = pf.get("watchlist",[])
                             ejede2 = [h["ticker"] for h in pf.get("holdings",[])]
                             if r["ticker"] not in wl2 and r["ticker"] not in ejede2:
-                                if st.button("+ Watchlist", key=f"wl_opd_{r['ticker']}", use_container_width=True):
+                                if st.button("+ Watchlist", key=f"wl_opd2_{i}_{r['ticker']}", use_container_width=True):
                                     wl2.append(r["ticker"]); pf["watchlist"]=wl2
                                     engine.gem_portfolio(pf); st.rerun()
 
