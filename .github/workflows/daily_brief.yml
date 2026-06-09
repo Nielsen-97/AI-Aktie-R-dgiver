@@ -151,10 +151,26 @@ jobs:
                   else:
                       emoji = "🟡"
 
+                  # Beregn platform og beløb
+                  try:
+                      with open("data/portfolio.json", encoding="utf-8") as pf:
+                          portfolio = json.load(pf)
+                      cash_usd = float(portfolio.get("cash", {}).get("etoro_usd", 0))
+                      cash_dkk = float(portfolio.get("cash", {}).get("nordnet_dkk", 0))
+                      er_dansk = r.get("ticker","").endswith(".CO")
+                      kelly_map = {9.0:0.25,8.5:0.20,8.0:0.15,7.0:0.10,6.0:0.06}
+                      kelly = next((v for k,v in sorted(kelly_map.items(),reverse=True) if float(score or 0)>=k), 0.03)
+                      if er_dansk or cash_usd < 50:
+                          platform_anbefaling = f"Nordnet — køb for **{round(cash_dkk*kelly):,} DKK**"
+                      else:
+                          platform_anbefaling = f"eToro — køb for **${round(cash_usd*kelly,0):.0f} USD**"
+                  except:
+                      platform_anbefaling = "Se appen for position-størrelse"
+
                   felt_tekst = (
                       f"**{anb}** — Score {score}/10\n"
                       f"Entry: **${entry}** | Stop: ${stop} | Target: **${target}**\n"
-                      f"Sandsynlighed: {prob}%\n"
+                      f"Sandsynlighed: {prob}% | {platform_anbefaling}\n"
                   )
                   if resume:
                       felt_tekst += f"_{resume[:100]}_"
