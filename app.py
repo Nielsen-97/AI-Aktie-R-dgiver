@@ -661,10 +661,23 @@ with tab3:
 
     makro_strip(makro)
 
+    # ── Data-status banner ────────────────────────────────────
+    brief_dato  = brief.get("dato", "")  if brief  else ""
+    screen_dato = screener.get("dato","") if screener else ""
+    sidst_dato  = brief_dato or screen_dato or "Ingen data"
+    st.markdown(
+        f'<div style="font-family:Space Mono,monospace;font-size:.65rem;color:#4a4a6a;'
+        f'background:rgba(0,0,0,.2);border:1px solid rgba(255,255,255,.05);border-radius:6px;'
+        f'padding:.5rem 1rem;margin-bottom:.8rem">'
+        f'Data sidst opdateret: <b style="color:#a0a8ff">{sidst_dato}</b> &nbsp;·&nbsp; '
+        f'Scanning kører automatisk man–fre kl 07:00 &nbsp;·&nbsp; '
+        f'Genindlæs siden efter scanning for at se ny data'
+        f'</div>', unsafe_allow_html=True)
+
     st.markdown(
         '<div class="info-box">Systemet finder de <b>1-5 bedste signaler</b> hvor fundamental, teknisk '
-        'og sentiment alle peger samme vej. Klik <b>Køb</b> for at registrere en handel med '
-        'automatisk stop-loss og target.</div>', unsafe_allow_html=True)
+        'og sentiment alle peger samme vej. Klik <b>🟢 Køb</b> for at registrere en handel — '
+        'appen tracker stop-loss og target automatisk.</div>', unsafe_allow_html=True)
 
     ka,kb = st.columns([1,1])
     with ka:
@@ -672,17 +685,17 @@ with tab3:
                      help="Starter scanning via GitHub Actions"):
             ok, err = trigger_github_scanning("hurtig")
             if ok:
-                st.success("Scanning startet! Følg fremgang på GitHub → Actions. Genindlæs siden om ~15 min.")
+                st.success("✅ Scanning startet på GitHub Actions! Vent ~15 min og genindlæs siden.")
             else:
-                st.error(f"Kunne ikke starte scanning: {err}")
+                st.error(f"Fejl: {err}")
     with kb:
         if st.button("▶ Komplet Scanning (~30 min)", use_container_width=True,
                      help="Starter komplet scanning via GitHub Actions"):
             ok, err = trigger_github_scanning("komplet")
             if ok:
-                st.success("Komplet scanning startet! Følg fremgang på GitHub → Actions. Genindlæs siden om ~30 min.")
+                st.success("✅ Komplet scanning startet! Vent ~30 min og genindlæs siden.")
             else:
-                st.error(f"Kunne ikke starte scanning: {err}")
+                st.error(f"Fejl: {err}")
 
     if not brief and not screener:
         st.markdown(
@@ -755,10 +768,27 @@ with tab3:
                                 f'</div>', unsafe_allow_html=True)
                             wl2 = pf.get("watchlist",[])
                             ejede2 = [h["ticker"] for h in pf.get("holdings",[])]
-                            if r["ticker"] not in wl2 and r["ticker"] not in ejede2:
-                                if st.button("+ Watchlist", key=f"wl_opd2_{i}_{r['ticker']}", use_container_width=True):
-                                    wl2.append(r["ticker"]); pf["watchlist"]=wl2
-                                    engine.gem_portfolio(pf); st.rerun()
+                            allerede_kobt2 = r["ticker"] in ejede2
+                            if allerede_kobt2:
+                                st.markdown(
+                                    '<div style="font-family:Space Mono,monospace;font-size:.65rem;'
+                                    'color:#4ade80;padding:.3rem 0">✓ I portefølje</div>',
+                                    unsafe_allow_html=True)
+                            else:
+                                b1o, b2o = st.columns(2)
+                                with b1o:
+                                    if st.button(f"🟢 Køb", key=f"koeb_opd_{i}_{r['ticker']}", use_container_width=True):
+                                        st.session_state[f"vis_koeb_{r['ticker']}"] = True
+                                with b2o:
+                                    if r["ticker"] not in wl2:
+                                        if st.button("+ WL", key=f"wl_opd2_{i}_{r['ticker']}", use_container_width=True):
+                                            wl2.append(r["ticker"]); pf["watchlist"]=wl2
+                                            engine.gem_portfolio(pf); st.rerun()
+                            # Vis købs-dialog for screener-opdagelse
+                            if st.session_state.get(f"vis_koeb_{r['ticker']}"):
+                                p_dummy = {"entry": str(round(kurs(r["ticker"])["pris"],2)) if kurs(r["ticker"]) else "-",
+                                           "stop": "-", "target": "-"}
+                                vis_koeb_dialog(r, p_dummy, pf, cash_dkk, cash_usd, cash_end)
 
         # Fuld tabel
         if screener:
