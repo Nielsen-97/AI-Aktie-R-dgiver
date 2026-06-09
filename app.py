@@ -6,7 +6,7 @@
 ============================================================
 """
 import streamlit as st
-import os, sys, json, subprocess, re, math, html as html_mod
+import os, sys, json, re, math, html as html_mod, requests
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -108,17 +108,19 @@ def sec(tekst, m=""):
 def kurs(ticker):
     return engine.hent_kurs(ticker)
 
-def kør(args, timeout=2400):
-    try:
-        ep = os.path.join(os.path.dirname(os.path.abspath(__file__)), "engine.py")
-        r  = subprocess.run([sys.executable, ep] + args,
-                            capture_output=True, text=True, timeout=timeout,
-                            cwd=os.path.dirname(os.path.abspath(__file__)))
-        return (r.returncode == 0 or not r.stderr), r.stderr[-600:] if r.stderr else ""
-    except subprocess.TimeoutExpired:
-        return False, "Timeout"
-    except Exception as e:
-        return False, str(e)
+def trigger_github_scanning(scanning_type="komplet"):
+    token = st.secrets.get("GITHUB_TOKEN", "")
+    repo  = st.secrets.get("GITHUB_REPO", "Nielsen-97/AI-Aktie-R-dgiver")
+    if not token:
+        return False, "GITHUB_TOKEN mangler i Streamlit Secrets"
+    url = f"https://api.github.com/repos/{repo}/actions/workflows/daily_brief.yml/dispatches"
+    r = requests.post(url,
+        headers={"Authorization": f"token {token}", "Accept": "application/vnd.github.v3+json"},
+        json={"ref": "main", "inputs": {"scanning_type": scanning_type}},
+        timeout=15)
+    if r.status_code == 204:
+        return True, ""
+    return False, f"GitHub API fejl {r.status_code}: {r.text[:200]}"
 
 def makro_strip(m):
     if not m: return
@@ -664,38 +666,23 @@ with tab3:
         'og sentiment alle peger samme vej. Klik <b>Køb</b> for at registrere en handel med '
         'automatisk stop-loss og target.</div>', unsafe_allow_html=True)
 
-    ka,kb,kc = st.columns([2,2,1])
+    ka,kb = st.columns([1,1])
     with ka:
-        if st.button("Kør Scanning Nu (~15 min)", use_container_width=True):
-            prog = st.progress(5, text="Makro...")
-            kør(["makro"], 60)
-            prog.progress(20, text="Scanner aktier...")
-            kør(["screener"], 1200)
-            prog.progress(72, text="Groq 70b dyb analyse...")
-            kør(["dyb"], 1800)
-            prog.progress(90, text="FinBERT + alerts...")
-            kør(["sentiment"], 600)
-            prog.progress(100, text="Færdig!")
-            st.success("Scanning færdig!"); st.rerun()
+        if st.button("▶ Hurtig Scanning (~15 min)", use_container_width=True,
+                     help="Starter scanning via GitHub Actions"):
+            ok, err = trigger_github_scanning("hurtig")
+            if ok:
+                st.success("Scanning startet! Følg fremgang på GitHub → Actions. Genindlæs siden om ~15 min.")
+            else:
+                st.error(f"Kunne ikke starte scanning: {err}")
     with kb:
-        if st.button("Kør Komplet Scanning (~30 min)", use_container_width=True):
-            prog = st.progress(5, text="Starter...")
-            kør(["makro"], 60)
-            prog.progress(12, text="Scanner alle sektorer...")
-            kør(["screener","--komplet"], 2400)
-            prog.progress(72, text="Groq 70b...")
-            kør(["dyb"], 1800)
-            prog.progress(90, text="FinBERT...")
-            kør(["sentiment"], 600)
-            prog.progress(100, text="Færdig!")
-            st.success("Færdig!"); st.rerun()
-    with kc:
-        if st.button("🗑 Ryd", use_container_width=True, help="Slet gammel data"):
-            ddir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data")
-            for fn in ["screener_seneste.json","daily_brief_seneste.json","alerts.json"]:
-                fp = os.path.join(ddir, fn)
-                if os.path.exists(fp): os.remove(fp)
-            st.success("Ryddet!"); st.rerun()
+        if st.button("▶ Komplet Scanning (~30 min)", use_container_width=True,
+                     help="Starter komplet scanning via GitHub Actions"):
+            ok, err = trigger_github_scanning("komplet")
+            if ok:
+                st.success("Komplet scanning startet! Følg fremgang på GitHub → Actions. Genindlæs siden om ~30 min.")
+            else:
+                st.error(f"Kunne ikke starte scanning: {err}")
 
     if not brief and not screener:
         st.markdown(
