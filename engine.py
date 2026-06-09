@@ -88,6 +88,14 @@ def log(besked):
     except:
         pass
 
+def _gem_json_atomisk(filepath, data):
+    """Skriv JSON atomisk — undgår truncated/korrupte filer ved nedbrud."""
+    import tempfile
+    tmp = filepath + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False)
+    os.replace(tmp, filepath)
+
 # ════════════════════════════════════════════════════════════
 # PORTFOLIO
 # ════════════════════════════════════════════════════════════
@@ -316,8 +324,7 @@ def hent_makro():
             "stop_koeb": vix > 30,
             "forsigtig": vix > 25,
         }
-        with open(MAKRO_FILE, "w") as f:
-            json.dump(makro, f)
+        _gem_json_atomisk(MAKRO_FILE, makro)
         log(f"Makro OK: VIX={vix:.1f}, SP500={sp_status_str(makro)}, Justering={just:+.1f}")
         return makro
     except Exception as e:
@@ -1214,12 +1221,11 @@ def koer_screener(hurtig=True):
             trained += 1
     log(f"RAG: {trained} regnskaber gemt.")
 
-    with open(SCREENER_FILE, "w", encoding="utf-8") as f:
-        json.dump({
-            "dato": datetime.now().strftime("%Y-%m-%d %H:%M"),
-            "makro": makro,
-            "resultater": res
-        }, f, ensure_ascii=False)
+    _gem_json_atomisk(SCREENER_FILE, {
+        "dato": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        "makro": makro,
+        "resultater": res
+    })
 
     kandidater = [r for r in res if r["samlet"] >= 6.5]
     log(f"Screener færdig: {len(res)} aktier, {len(kandidater)} kandidater ≥6.5")
@@ -1238,8 +1244,8 @@ def koer_dyb_analyse(kandidater, makro=None):
         f = r.get("fundamental", 0)
         t = r.get("teknisk", 0)
         s = r.get("sentiment", 0)
-        # Alle tre skal være over 6 — og screener-score over 7.5
-        if f >= 6.0 and t >= 6.0 and s >= 0 and r["samlet"] >= 7.5:
+        # Alle tre skal pege i positiv retning — screener-score over 7.0
+        if f >= 5.5 and t >= 5.5 and s >= 0 and r["samlet"] >= 7.0:
             stærke.append(r)
 
     # Sorter og tag de 5 bedste
@@ -1347,8 +1353,7 @@ def koer_daily_brief(hurtig=True):
         "top_kandidater": dybe,
         "alle_screener": alle[:30],
     }
-    with open(BRIEF_FILE, "w", encoding="utf-8") as f:
-        json.dump(brief, f, ensure_ascii=False)
+    _gem_json_atomisk(BRIEF_FILE, brief)
 
     # Tjek alerts
     _tjek_og_send_alerts(dybe)
@@ -1480,7 +1485,10 @@ if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "help"
     if   cmd == "brief":    koer_daily_brief("--komplet" not in sys.argv)
     elif cmd == "screener": koer_screener("--komplet" not in sys.argv)
-    elif cmd == "makro":    print(json.dumps(hent_makro(), indent=2, ensure_ascii=False))
+    elif cmd == "makro":
+        m = hent_makro()
+        _gem_json_atomisk(MAKRO_FILE, m)
+        print(json.dumps(m, indent=2, ensure_ascii=False))
     elif cmd == "dyb":
         # Hent screener-data og kør dyb analyse — gem resultatet i brief-filen
         data = hent_screener_data()
@@ -1496,8 +1504,7 @@ if __name__ == "__main__":
                 "top_kandidater": dybe,
                 "alle_screener":  data["resultater"][:30],
             }
-            with open(BRIEF_FILE, "w", encoding="utf-8") as f:
-                json.dump(brief, f, ensure_ascii=False)
+            _gem_json_atomisk(BRIEF_FILE, brief)
             _tjek_og_send_alerts(dybe)
             log(f"Dyb analyse færdig: {len(dybe)} analyseret, gemt i brief-fil.")
         else:
