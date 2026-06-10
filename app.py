@@ -350,7 +350,14 @@ def vis_signal_kort(r, cash_dkk, cash_usd, cash_end, pf, vis_koeb=True):
             f'<div class="pris-cell"><div class="pris-lbl">Entry</div><div class="pris-val" style="color:#e8e8f0">${p["entry"]}</div></div>'
             f'<div class="pris-cell"><div class="pris-lbl">Stop Loss</div><div class="pris-val" style="color:#f87171">${p["stop"]}</div></div>'
             f'<div class="pris-cell"><div class="pris-lbl">Target</div><div class="pris-val" style="color:#4ade80">${p["target"]}</div></div>'
-            f'<div class="pris-cell"><div class="pris-lbl">Anbefalet pos.</div><div class="pris-val" style="color:{plat_c}">{pos["beloeb"]} {pos["valuta"]}</div></div>'
+            f'<div class="pris-cell"><div class="pris-lbl">Anbefalet pos.</div>'
+            f'<div class="pris-val" style="color:{plat_c}">{pos["beloeb"]} {pos["valuta"]}</div>'
+            + (f'<div class="pris-lbl" style="margin-top:.15rem">{pos["platform"]}</div>'
+               + (f'<div class="pris-lbl">≈ {pos["beloeb"]/entry_f:.2f} stk</div>'
+                  if pos["valuta"]=="USD" and entry_f>0 else
+                  f'<div class="pris-lbl">≈ {pos["beloeb"]/7/entry_f:.2f} stk</div>'
+                  if entry_f>0 else ''))
+            + '</div>'
             '</div>'
         )
         if entry_f > 0 and stop_f > 0 and target_f > 0:
@@ -697,6 +704,17 @@ with tab3:
             else:
                 st.error(f"Fejl: {err}")
 
+    # ── Cash-advarsel ──────────────────────────────────────────
+    total_dkk = cash_dkk + cash_end
+    total_usd = cash_usd
+    if total_dkk < 500 and total_usd < 100:
+        st.markdown(
+            '<div style="background:rgba(250,204,21,.08);border:1px solid rgba(250,204,21,.25);'
+            'border-radius:8px;padding:.7rem 1.2rem;margin-bottom:.8rem;font-size:.82rem;color:#facc15">'
+            '⚠️ <b>Lav cash-beholdning</b> — Positionsstørrelser er beregnet ud fra din aktuelle cash. '
+            'Opdater din cash i <b>Portefølje</b>-tabben for realistiske anbefalinger.</div>',
+            unsafe_allow_html=True)
+
     if not brief and not screener:
         st.markdown(
             '<div style="text-align:center;padding:4rem;color:#4a4a6a">'
@@ -711,7 +729,7 @@ with tab3:
             saelg = [r for r in kands if parse_analyse(r.get("analyse",""))["anbefaling"].upper() == "SÆLG"]
             hold  = [r for r in kands if parse_analyse(r.get("analyse",""))["anbefaling"].upper() in ["HOLD","VENT"]]
 
-            sec(f"Handelsanbefalinger · Groq 70b · {brief.get('dato','')}")
+            sec(f"✅ Groq 70b Handelsanbefalinger · {brief.get('dato','')}")
 
             if koeb:
                 st.markdown('<p style="font-family:Space Mono,monospace;font-size:.68rem;color:#4ade80;margin-bottom:.8rem">▸ KØB SIGNALER</p>', unsafe_allow_html=True)
@@ -728,22 +746,20 @@ with tab3:
                 for r in hold:
                     vis_signal_kort(r, cash_dkk, cash_usd, cash_end, pf, vis_koeb=False)
 
-        # ── Interessante opdagelser ────────────────────────
+        # ── Screener-opdagelser (ikke Groq-analyseret) ────────
         if screener and screener.get("resultater"):
             alle = screener["resultater"]
             brief_tickers = {r["ticker"] for r in (brief or {}).get("top_kandidater",[])}
             opd = [r for r in alle if r["samlet"]>=7.0 and r["ticker"] not in brief_tickers][:6]
-            momentum = [r for r in alle
-                        if ok_tal(r.get("teknik_data",{}).get("pct_fra_52w_high"))
-                        and r.get("teknik_data",{}).get("pct_fra_52w_high",-100) > -5
-                        and r["ticker"] not in brief_tickers and r not in opd][:3]
 
-            if opd or momentum:
-                sec(f"Interessante Opdagelser · {screener.get('dato','')}", "margin-top:2rem")
+            if opd:
+                sec(f"📊 Screener-opdagelser · ikke Groq-analyseret · {screener.get('dato','')}", "margin-top:2rem")
                 st.markdown(
-                    '<p style="font-size:.78rem;color:#8a8aaa;margin-bottom:1rem">'
-                    'God screener-score men ikke Groq-analyseret endnu. '
-                    'Kør komplet scanning for dyb analyse.</p>', unsafe_allow_html=True)
+                    '<div style="background:rgba(160,168,255,.05);border:1px solid rgba(160,168,255,.15);'
+                    'border-radius:8px;padding:.7rem 1.2rem;margin-bottom:1rem;font-size:.8rem;color:#8a8aaa">'
+                    '⚠️ Disse aktier har høj screener-score men er <b>ikke Groq-analyseret endnu</b>. '
+                    'Kør en komplet scanning for at se fulde handelsanbefalinger med entry/stop/target. '
+                    'Du kan dog købe direkte hvis du selv vurderer aktien.</div>', unsafe_allow_html=True)
                 if opd:
                     cols = st.columns(min(3,len(opd)))
                     for i,r in enumerate(opd):
@@ -764,7 +780,9 @@ with tab3:
                                 f'<div style="font-family:Space Mono,monospace;font-size:.6rem;color:#4a4a6a;margin-top:.3rem">{" · ".join(bits2)}</div>'
                                 + (f'<div style="font-family:Space Mono,monospace;font-size:.6rem;color:#a0a8ff;margin-top:.3rem">'
                                    f'{pos3["platform"]}: max {pos3["beloeb"]} {pos3["valuta"]}</div>'
-                                   if pos3["beloeb"]>0 else '') +
+                                   if pos3["beloeb"]>0 else '')
+                                + (f'<div style="font-family:Space Mono,monospace;font-size:.6rem;color:#facc15;margin-top:.3rem">📅 Earnings: {r["naeste_earnings"]}</div>'
+                                   if r.get("naeste_earnings") else '') +
                                 f'</div>', unsafe_allow_html=True)
                             wl2 = pf.get("watchlist",[])
                             ejede2 = [h["ticker"] for h in pf.get("holdings",[])]
@@ -918,6 +936,31 @@ with tab4:
             f'<span class="{afk_c2}" style="font-weight:700">{afk2:+.1f}%</span>'
             f'</div>', unsafe_allow_html=True)
 
+    # Re-analyse af aktive positioner
+    reanalyse_data = engine._safe_json_load(os.path.join(engine.DATA_DIR, "reanalyse_seneste.json"))
+    if reanalyse_data and reanalyse_data.get("resultater"):
+        sec(f"🔄 Daglig Re-analyse · {reanalyse_data.get('dato','')}", "margin-top:2rem")
+        st.markdown('<div class="info-box">Systemet re-analyserer dine aktive handler dagligt for at bekræfte om du stadig skal holde.</div>', unsafe_allow_html=True)
+        for r in reanalyse_data["resultater"]:
+            p2 = parse_analyse(r.get("ny_analyse",""))
+            anb = p2["anbefaling"].upper()
+            anb_c = "#4ade80" if anb in ["KØB","HOLD"] else "#f87171"
+            afk = r.get("afkast", 0)
+            st.markdown(
+                f'<div class="handel-kort" style="border-left:3px solid {anb_c}">'
+                f'<div style="display:flex;justify-content:space-between">'
+                f'<div><b style="font-family:Space Mono,monospace">{r["ticker"]}</b>'
+                f' <span style="font-size:.7rem;color:#6a6a8a">· re-analyseret {r["dato"]}</span></div>'
+                f'<div style="text-align:right"><span style="color:{anb_c};font-weight:700">{anb}</span>'
+                f' <span class="{"up" if afk>=0 else "down"}">{afk:+.1f}%</span></div>'
+                f'</div>'
+                f'<div style="font-size:.78rem;color:#ccc;margin-top:.5rem">{esc(p2["resume"])}</div>'
+                f'</div>', unsafe_allow_html=True)
+            if anb in ["KØB","STÆRKT KØB"]:
+                st.markdown('<p style="font-family:Space Mono,monospace;font-size:.65rem;color:#4ade80">✅ Hold position — fundamentals intakt</p>', unsafe_allow_html=True)
+            elif anb == "SÆLG":
+                st.markdown('<p style="font-family:Space Mono,monospace;font-size:.65rem;color:#f87171">⚠️ Overvej at sælge — se analyse</p>', unsafe_allow_html=True)
+
 
 # ════════════════════════════════════════════════════════════
 # TAB 5: BACKTEST
@@ -954,6 +997,27 @@ with tab5:
                 st.markdown(f'<div class="metric-card"><div class="metric-label">{lbl}</div>'
                             f'<div class="metric-value" style="color:{clr}">{val}</div>'
                             f'<div class="metric-sub">{sub}</div></div>', unsafe_allow_html=True)
+        # Sharpe og drawdown
+        if data_bt.get("sharpe") is not None:
+            bs1, bs2, bs3 = st.columns(3)
+            sharpe_v = data_bt.get("sharpe", 0)
+            sharpe_c = "#4ade80" if sharpe_v > 1 else "#facc15" if sharpe_v > 0 else "#f87171"
+            dd = data_bt.get("max_drawdown_pct", 0)
+            with bs1:
+                st.markdown(f'<div class="metric-card"><div class="metric-label">Sharpe Ratio</div>'
+                            f'<div class="metric-value" style="color:{sharpe_c}">{sharpe_v:.2f}</div>'
+                            f'<div class="metric-sub">>1.0 er godt</div></div>', unsafe_allow_html=True)
+            with bs2:
+                st.markdown(f'<div class="metric-card"><div class="metric-label">Max Drawdown</div>'
+                            f'<div class="metric-value" style="color:#f87171">-{dd:.1f}%</div>'
+                            f'<div class="metric-sub">Største tab fra peak</div></div>', unsafe_allow_html=True)
+            with bs3:
+                vinder = data_bt.get("antal_vindere", 0)
+                taber = data_bt.get("antal_tabere", 0)
+                st.markdown(f'<div class="metric-card"><div class="metric-label">Vinder/Taber</div>'
+                            f'<div class="metric-value">{vinder}/{taber}</div>'
+                            f'<div class="metric-sub">Køb-anbefalinger</div></div>', unsafe_allow_html=True)
+
         sec("Seneste 20 Anbefalinger")
         for r in data_bt.get("seneste_resultater",[]):
             afl=r.get("afkast_30d",0) or 0; anb=r.get("anbefaling","")
