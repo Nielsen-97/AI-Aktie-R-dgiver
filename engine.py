@@ -329,6 +329,11 @@ def hent_makro():
         return makro
     except Exception as e:
         log(f"Makro fejl: {e}")
+        # Forsøg at bruge eksisterende gemt makro-data frem for hardkodet fallback
+        eksisterende = _safe_json_load(MAKRO_FILE)
+        if eksisterende and eksisterende.get("vix_status") not in [None, "Ukendt"]:
+            log("Makro: bruger eksisterende gemt data som fallback")
+            return eksisterende
         return {"vix": 20, "justering": 0, "stop_koeb": False, "forsigtig": False,
                 "vix_status": "Ukendt", "sp_status": "", "sp_1m_afkast": 0}
 
@@ -532,12 +537,19 @@ def teknisk_screening(ticker):
             detaljer["pct_fra_52w_high"] = None
 
         # ── Trend styrke (ADX-proxy) ────────────────────────
-        afkast_1m = float((pris / close.iloc[-22] - 1) * 100) if len(close) >= 22 else 0
-        afkast_3m = float((pris / close.iloc[-66] - 1) * 100) if len(close) >= 66 else 0
-        detaljer["afkast_1m"] = round(afkast_1m, 1)
-        detaljer["afkast_3m"] = round(afkast_3m, 1)
+        try:
+            afkast_1m = float((pris / close.iloc[-22] - 1) * 100) if len(close) >= 22 else None
+            afkast_3m = float((pris / close.iloc[-66] - 1) * 100) if len(close) >= 66 else None
+            import math as _math
+            detaljer["afkast_1m"] = round(afkast_1m, 1) if afkast_1m is not None and not _math.isnan(afkast_1m) else None
+            detaljer["afkast_3m"] = round(afkast_3m, 1) if afkast_3m is not None and not _math.isnan(afkast_3m) else None
+        except:
+            detaljer["afkast_1m"] = None
+            detaljer["afkast_3m"] = None
+            afkast_1m = None
+            afkast_3m = None
 
-        if afkast_1m > 5 and afkast_3m > 10:
+        if afkast_1m and afkast_3m and afkast_1m > 5 and afkast_3m > 10:
             score += 0.5
             grunde.append(f"Momentum: +{afkast_1m:.1f}% 1M / +{afkast_3m:.1f}% 3M")
 
@@ -900,11 +912,11 @@ def beregn_position(score, cash_dkk, cash_usd, er_dansk=False, platform_pref=Non
 
     # Hvis bruger angiver specifik platform
     if platform_pref == "nordnet":
-        return {"beloeb": round(cash_dkk * kelly), "valuta": "DKK", "platform": "Nordnet", "begrundelse": begrundelse}
+        return {"beloeb": min(round(cash_dkk * kelly), int(cash_dkk)), "valuta": "DKK", "platform": "Nordnet", "begrundelse": begrundelse}
     if platform_pref == "endavu":
-        return {"beloeb": round(cash_dkk * kelly), "valuta": "DKK", "platform": "Endavu", "begrundelse": begrundelse}
+        return {"beloeb": min(round(cash_dkk * kelly), int(cash_dkk)), "valuta": "DKK", "platform": "Endavu", "begrundelse": begrundelse}
     if platform_pref == "etoro":
-        return {"beloeb": round(cash_usd * kelly, 2), "valuta": "USD", "platform": "eToro", "begrundelse": begrundelse}
+        return {"beloeb": min(round(cash_usd * kelly, 2), cash_usd), "valuta": "USD", "platform": "eToro", "begrundelse": begrundelse}
 
     # Danske aktier (.CO suffix)
     if er_dansk:
@@ -912,13 +924,15 @@ def beregn_position(score, cash_dkk, cash_usd, er_dansk=False, platform_pref=Non
         try:
             k = hent_kurs(ticker_symbol) if ticker_symbol else None
             if k and k["pris"] < 500:
-                return {"beloeb": round(cash_dkk * kelly), "valuta": "DKK", "platform": "Endavu", "begrundelse": begrundelse}
+                endavu_beloeb = min(round(cash_dkk * kelly), int(cash_dkk))
+                return {"beloeb": endavu_beloeb, "valuta": "DKK", "platform": "Endavu", "begrundelse": begrundelse}
         except:
             pass
-        return {"beloeb": round(cash_dkk * kelly), "valuta": "DKK", "platform": "Nordnet", "begrundelse": begrundelse}
+        nordnet_beloeb = min(round(cash_dkk * kelly), int(cash_dkk))
+        return {"beloeb": nordnet_beloeb, "valuta": "DKK", "platform": "Nordnet", "begrundelse": begrundelse}
 
-    # US aktier → eToro (ingen kommission, brudsaktier = billigste option)
-    beloeb = round(cash_usd * kelly, 2)
+    # US aktier → eToro, cap ved faktisk cash
+    beloeb = min(round(cash_usd * kelly, 2), cash_usd)
     return {"beloeb": beloeb, "valuta": "USD", "platform": "eToro", "begrundelse": begrundelse}
 
 # ════════════════════════════════════════════════════════════
