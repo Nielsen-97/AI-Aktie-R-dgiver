@@ -537,6 +537,10 @@ with tab1:
     # Top signaler preview
     if brief and brief.get("top_kandidater"):
         sec(f"Dagens Signaler · {brief.get('dato','')}")
+        st.markdown(
+            '<div style="font-family:Space Mono,monospace;font-size:.65rem;color:#6a6a8a;margin-bottom:.8rem">'
+            'Forhåndsvisning — gå til <b style="color:#a0a8ff">SIGNALER</b>-tabben for at købe</div>',
+            unsafe_allow_html=True)
         kands = brief["top_kandidater"][:3]
         cols = st.columns(min(3,len(kands)))
         for i, r in enumerate(kands):
@@ -544,6 +548,7 @@ with tab1:
             rec = p2["anbefaling"].upper()
             rc = "#4ade80" if rec in ["KØB","STÆRKT KØB"] else "#f87171" if rec=="SÆLG" else "#facc15"
             score = r.get("kombineret",5)
+            pos2 = engine.beregn_position(score, cash_dkk, cash_usd, r["ticker"].endswith(".CO"))
             with cols[i%3]:
                 st.markdown(
                     f'<div class="opd-kort" style="border-left:2px solid {rc}">'
@@ -553,6 +558,8 @@ with tab1:
                     + badge(score) +
                     f'<div style="font-family:Space Mono,monospace;font-size:.62rem;color:#4a4a6a;margin-top:.3rem">'
                     f'Entry ${p2["entry"]} → Target ${p2["target"]}</div>'
+                    f'<div style="font-family:Space Mono,monospace;font-size:.6rem;color:#a0a8ff;margin-top:.2rem">'
+                    f'📍 {pos2["platform"]}: {pos2["beloeb"]} {pos2["valuta"]}</div>'
                     f'</div>', unsafe_allow_html=True)
 
     # Fonde
@@ -968,20 +975,71 @@ with tab4:
 with tab5:
     sec("Backtest · Virker Modellen?")
     st.markdown(
-        '<div class="info-box">Systemet tracker alle Groq-anbefalinger. '
-        'Efter 30 dage beregner det om retningen var rigtig. '
-        'Kræver 30+ dages historik.</div>', unsafe_allow_html=True)
+        '<div class="info-box">Systemet tracker alle Groq-anbefalinger og beregner om retningen var rigtig efter 30 dage. '
+        '<b>Du kan se aktuel performance med det samme</b> — 30-dages historik giver den fulde statistik.</div>',
+        unsafe_allow_html=True)
 
     if st.button("Opdater Backtest", use_container_width=False):
         with st.spinner("Beregner..."): statistik = engine.koer_backtest()
         st.success("Opdateret!"); st.rerun()
 
     data_bt = engine.hent_backtest_data()
+
+    # Vis aktuel performance for alle anbefalinger uanset alder
+    historik_raa = engine._safe_json_load(engine.BACKTEST_HISTORIK_FILE) or []
+    if historik_raa:
+        sec("Aktuel Performance · Alle Anbefalinger")
+        alle_med_pris = []
+        for item in historik_raa:
+            k2 = kurs(item["ticker"])
+            if k2 and item.get("pris_koeb", 0) > 0:
+                afl_nu = round((k2["pris"] / item["pris_koeb"] - 1) * 100, 2)
+                dage = (datetime.now() - datetime.strptime(item["dato"], "%Y-%m-%d")).days if item.get("dato") else 0
+                alle_med_pris.append({**item, "afl_nu": afl_nu, "pris_nu": k2["pris"], "dage": dage})
+
+        if alle_med_pris:
+            alle_med_pris.sort(key=lambda x: x["dato"], reverse=True)
+            gns_nu = sum(x["afl_nu"] for x in alle_med_pris) / len(alle_med_pris)
+            koeb_nu = [x for x in alle_med_pris if x.get("anbefaling") in ["KØB","STÆRKT KØB"]]
+            gns_koeb_nu = sum(x["afl_nu"] for x in koeb_nu) / len(koeb_nu) if koeb_nu else 0
+
+            pv1, pv2, pv3 = st.columns(3)
+            with pv1:
+                c = "#4ade80" if gns_nu > 0 else "#f87171"
+                st.markdown(f'<div class="metric-card"><div class="metric-label">Gns aktuel afkast</div>'
+                            f'<div class="metric-value" style="color:{c}">{gns_nu:+.1f}%</div>'
+                            f'<div class="metric-sub">{len(alle_med_pris)} anbefalinger</div></div>', unsafe_allow_html=True)
+            with pv2:
+                c = "#4ade80" if gns_koeb_nu > 0 else "#f87171"
+                st.markdown(f'<div class="metric-card"><div class="metric-label">KØB-anbefalinger nu</div>'
+                            f'<div class="metric-value" style="color:{c}">{gns_koeb_nu:+.1f}%</div>'
+                            f'<div class="metric-sub">{len(koeb_nu)} KØB signaler</div></div>', unsafe_allow_html=True)
+            with pv3:
+                vindere_nu = sum(1 for x in koeb_nu if x["afl_nu"] > 0)
+                st.markdown(f'<div class="metric-card"><div class="metric-label">Vindere / Tabere</div>'
+                            f'<div class="metric-value">{vindere_nu}/{len(koeb_nu)-vindere_nu}</div>'
+                            f'<div class="metric-sub">KØB i plus/minus</div></div>', unsafe_allow_html=True)
+
+            sec("Seneste Anbefalinger — Aktuel Status", "margin-top:1.5rem")
+            for r in alle_med_pris[:15]:
+                anb = r.get("anbefaling",""); afl = r.get("afl_nu", 0)
+                ok = (anb in ["KØB","STÆRKT KØB"] and afl > 0) or (anb == "SÆLG" and afl < 0)
+                dage_txt = f"{r['dage']}d siden"
+                st.markdown(
+                    f'<div class="bt-row">'
+                    f'<span style="color:{"#4ade80" if ok else "#f87171"};font-weight:700">{"✓" if ok else "✗"}</span>'
+                    f'<span style="font-weight:600;min-width:60px">{r.get("ticker","")}</span>'
+                    f'<span style="color:#6a6a8a;min-width:70px">{dage_txt}</span>'
+                    f'<span style="min-width:100px;color:#6a6a8a">{anb}</span>'
+                    f'<span style="color:#6a6a8a">${r.get("pris_koeb",0):.2f}→${r.get("pris_nu",0):.2f}</span>'
+                    f'<span style="color:{"#4ade80" if afl>0 else "#f87171"};font-weight:700">{afl:+.1f}%</span>'
+                    f'</div>', unsafe_allow_html=True)
+
     if not data_bt or data_bt.get("antal_anbefalinger",0)==0:
         st.markdown(
-            f'<div class="info-box" style="color:#6a6a8a">'
-            f'{data_bt.get("besked","Ingen data endnu.") if data_bt else "Klik Opdater Backtest."}'
-            f'</div>', unsafe_allow_html=True)
+            '<div class="info-box" style="color:#6a6a8a;margin-top:1.5rem">'
+            '30-dages statistik bliver tilgængelig når første anbefalinger er 30+ dage gamle.'
+            '</div>', unsafe_allow_html=True)
     else:
         b1,b2,b3,b4 = st.columns(4)
         for col,lbl,val,sub,clr in [
