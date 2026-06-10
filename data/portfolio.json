@@ -9,7 +9,7 @@
   "cash": {
     "nordnet_dkk": 6000.0,
     "etoro_usd": 106.85,
-    "endavu_dkk": 0.0
+    "endavu_dkk": 200.0
   },
   "watchlist": ["AAPL", "MSFT", "NVDA", "TSLA", "GOOGL", "META", "AMZN", "AMD"]
 }
