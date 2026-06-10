@@ -274,68 +274,73 @@ def tjek_saelg_signaler():
 # ════════════════════════════════════════════════════════════
 def hent_makro():
     log("Henter makro: VIX, SP500, Fear&Greed...")
-    try:
-        vix     = float(yf.Ticker("^VIX").history(period="5d")["Close"].iloc[-1])
-        sp      = yf.Ticker("^GSPC").history(period="1y")
-        sp_pris = float(sp["Close"].iloc[-1])
-        sp_sma  = float(sp["Close"].rolling(200).mean().iloc[-1])
-        sp_sma50= float(sp["Close"].rolling(50).mean().iloc[-1])
-        sp_trend= sp_pris > sp_sma
-
-        # SP500 momentum
-        sp_1m_afkast = float((sp_pris / sp["Close"].iloc[-22] - 1) * 100) if len(sp) >= 22 else 0.0
-
-        # 10-årig obligationsrente (proxy for rentepres)
+    last_err = None
+    for forsøg in range(3):
         try:
-            tnx = yf.Ticker("^TNX").history(period="5d")["Close"].iloc[-1]
-            rente_txt = f"{tnx:.2f}%"
-            rente_advarsel = tnx > 4.5
-        except:
-            rente_txt = "N/A"
-            rente_advarsel = False
+            if forsøg > 0:
+                log(f"Makro retry {forsøg+1}/3...")
+                time.sleep(4 * forsøg)
 
-        vix_status = "Roligt" if vix < 20 else "Uroligt" if vix < 30 else "PANIK"
+            vix     = float(yf.Ticker("^VIX").history(period="5d")["Close"].iloc[-1])
+            sp      = yf.Ticker("^GSPC").history(period="1y")
+            sp_pris = float(sp["Close"].iloc[-1])
+            sp_sma  = float(sp["Close"].rolling(200).mean().iloc[-1])
+            sp_sma50= float(sp["Close"].rolling(50).mean().iloc[-1])
+            sp_trend= sp_pris > sp_sma
 
-        # Score-justering: mere nuanceret end før
-        if vix > 30:
-            just = -2.5
-        elif vix > 25:
-            just = -1.5
-        elif vix > 20:
-            just = -0.5
-        else:
-            just = 0.0
+            sp_1m_afkast = float((sp_pris / sp["Close"].iloc[-22] - 1) * 100) if len(sp) >= 22 else 0.0
 
-        # Bonus ved stærkt marked
-        if sp_trend and sp_1m_afkast > 2:
-            just += 0.5
+            try:
+                tnx = yf.Ticker("^TNX").history(period="5d")["Close"].iloc[-1]
+                rente_txt = f"{tnx:.2f}%"
+                rente_advarsel = tnx > 4.5
+            except:
+                rente_txt = "N/A"
+                rente_advarsel = False
 
-        makro = {
-            "vix": round(vix, 2),
-            "vix_status": vix_status,
-            "sp_status": "Optrend" if sp_trend else "Nedtrend",
-            "sp_pris": round(sp_pris, 2),
-            "sp_sma200": round(sp_sma, 2),
-            "sp_sma50": round(sp_sma50, 2),
-            "sp_1m_afkast": round(sp_1m_afkast, 2),
-            "rente_10y": rente_txt,
-            "rente_advarsel": rente_advarsel,
-            "justering": round(just, 2),
-            "stop_koeb": vix > 30,
-            "forsigtig": vix > 25,
-        }
-        _gem_json_atomisk(MAKRO_FILE, makro)
-        log(f"Makro OK: VIX={vix:.1f}, SP500={sp_status_str(makro)}, Justering={just:+.1f}")
-        return makro
-    except Exception as e:
-        log(f"Makro fejl: {e}")
-        # Forsøg at bruge eksisterende gemt makro-data frem for hardkodet fallback
-        eksisterende = _safe_json_load(MAKRO_FILE)
-        if eksisterende and eksisterende.get("vix_status") not in [None, "Ukendt"]:
-            log("Makro: bruger eksisterende gemt data som fallback")
-            return eksisterende
-        return {"vix": 20, "justering": 0, "stop_koeb": False, "forsigtig": False,
-                "vix_status": "Ukendt", "sp_status": "", "sp_1m_afkast": 0}
+            vix_status = "Roligt" if vix < 20 else "Uroligt" if vix < 30 else "PANIK"
+
+            if vix > 30:
+                just = -2.5
+            elif vix > 25:
+                just = -1.5
+            elif vix > 20:
+                just = -0.5
+            else:
+                just = 0.0
+
+            if sp_trend and sp_1m_afkast > 2:
+                just += 0.5
+
+            makro = {
+                "vix": round(vix, 2),
+                "vix_status": vix_status,
+                "sp_status": "Optrend" if sp_trend else "Nedtrend",
+                "sp_pris": round(sp_pris, 2),
+                "sp_sma200": round(sp_sma, 2),
+                "sp_sma50": round(sp_sma50, 2),
+                "sp_1m_afkast": round(sp_1m_afkast, 2),
+                "rente_10y": rente_txt,
+                "rente_advarsel": rente_advarsel,
+                "justering": round(just, 2),
+                "stop_koeb": vix > 30,
+                "forsigtig": vix > 25,
+            }
+            _gem_json_atomisk(MAKRO_FILE, makro)
+            log(f"Makro OK: VIX={vix:.1f}, SP500={sp_status_str(makro)}, Justering={just:+.1f}")
+            return makro
+        except Exception as e:
+            last_err = e
+            log(f"Makro fejl forsøg {forsøg+1}: {e}")
+
+    log(f"Makro: alle 3 forsøg fejlede — bruger fallback. Sidst: {last_err}")
+    eksisterende = _safe_json_load(MAKRO_FILE)
+    if eksisterende and eksisterende.get("vix_status") not in [None, "Ukendt", ""]:
+        log("Makro: bruger eksisterende gemt data som fallback")
+        return eksisterende
+    return {"vix": 20, "justering": 0, "stop_koeb": False, "forsigtig": False,
+            "vix_status": "Ukendt", "sp_status": "Ukendt", "sp_1m_afkast": 0,
+            "rente_10y": "N/A", "rente_advarsel": False}
 
 def sp_status_str(m):
     return m.get("sp_status","") + f" ({m.get('sp_1m_afkast',0):+.1f}% 1M)"

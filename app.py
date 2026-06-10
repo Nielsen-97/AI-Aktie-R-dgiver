@@ -139,13 +139,30 @@ def parse_analyse(tekst):
                 "stop":"-","target":"-","resume":"–","tidshorisont":"30-90 dage"}
     def s(patterns, default="-"):
         for p in (patterns if isinstance(patterns,list) else [patterns]):
-            m = re.search(p, tekst, re.I)
+            m = re.search(p, tekst, re.I | re.UNICODE)
             if m: return m.group(1).strip().rstrip(".,")
         return default
-    anb = s([r"ANBEFALING[:\s]+([A-ZÆØÅ]+(?:\s+[A-ZÆØÅ]+)?)",
-             r"KONKLUSION[:\s]+([A-ZÆØÅ]+(?:\s+[A-ZÆØÅ]+)?)",
-             r"\b(STÆRKT KØB|KØB|SÆLG|HOLD)\b"], "VENT")
-    anb = {"BUY":"KØB","STRONG BUY":"STÆRKT KØB","SELL":"SÆLG"}.get(anb.upper(), anb.upper())
+    # Use greedy line-capture to avoid Danish char encoding issues
+    anb_raw = s([r"ANBEFALING[:\s]+([^\n\r,\.]{2,30})",
+                 r"KONKLUSION[:\s]+([^\n\r,\.]{2,30})"], "")
+    anb = anb_raw.strip().upper()
+    # Normalize English/ASCII variants to Danish
+    anb_map = {
+        "BUY": "KØB", "STRONG BUY": "STÆRKT KØB", "SELL": "SÆLG",
+        "STAERKT KOB": "STÆRKT KØB", "STAERKT KØB": "STÆRKT KØB",
+        "KOB": "KØB", "SAELG": "SÆLG",
+    }
+    anb = anb_map.get(anb, anb)
+    # Validate: must contain a known signal word
+    if not any(x in anb for x in ["KØB", "KOB", "SÆLG", "SAELG", "HOLD"]):
+        # Last resort: scan full text for signal keywords
+        for kw in ["STÆRKT KØB", "STAERKT KOB", "KØB", "KOB", "SÆLG", "SAELG", "HOLD"]:
+            if kw in tekst.upper():
+                anb = anb_map.get(kw, kw); break
+        else:
+            anb = "VENT"
+    # Final normalization
+    anb = anb_map.get(anb, anb)
     resume = s([r"RESUMÉ[:\s]+(.{15,150})", r"KONKLUSION[:\s]+(.{15,150})"], "–")
     if resume == "–":
         for l in tekst.splitlines():
@@ -561,6 +578,20 @@ with tab1:
                     f'<div style="font-family:Space Mono,monospace;font-size:.6rem;color:#a0a8ff;margin-top:.2rem">'
                     f'📍 {pos2["platform"]}: {pos2["beloeb"]} {pos2["valuta"]}</div>'
                     f'</div>', unsafe_allow_html=True)
+                if rec in ["KØB","STÆRKT KØB"]:
+                    if st.button(f"Køb {r['ticker']}", key=f"ovs_koeb_{r['ticker']}_{i}", use_container_width=True):
+                        ny = {"ticker":r["ticker"],"navn":r.get("navn",r["ticker"]),"platform":pos2["platform"].lower(),
+                              "antal":0,"koebspris":0,"type":"aktie","strategi":"aktiv",
+                              "groq_entry":p2["entry"],"groq_stop":p2["stop"],"groq_target":p2["target"],
+                              "dato_tilfojet":datetime.now().strftime("%Y-%m-%d")}
+                        holdings = pf.get("holdings",[])
+                        if not any(h["ticker"]==r["ticker"] for h in holdings):
+                            holdings.append(ny); pf["holdings"]=holdings
+                            gem_portfolio(pf)
+                            st.success(f"{r['ticker']} tilføjet til Mine Handler!")
+                            st.rerun()
+                        else:
+                            st.info(f"{r['ticker']} er allerede i porteføljen")
 
     # Fonde
     sec("Dine Fonde og Obligationer")
@@ -732,11 +763,12 @@ with tab3:
         # ── Groq-analyserede signaler ──────────────────────
         if brief and brief.get("top_kandidater"):
             kands = brief["top_kandidater"]
-            koeb  = [r for r in kands if parse_analyse(r.get("analyse",""))["anbefaling"].upper() in ["KØB","STÆRKT KØB"]]
-            saelg = [r for r in kands if parse_analyse(r.get("analyse",""))["anbefaling"].upper() == "SÆLG"]
-            hold  = [r for r in kands if parse_analyse(r.get("analyse",""))["anbefaling"].upper() in ["HOLD","VENT"]]
-
             sec(f"✅ Groq 70b Handelsanbefalinger · {brief.get('dato','')}")
+
+            # Group by signal type for visual separation
+            koeb  = [r for r in kands if parse_analyse(r.get("analyse",""))["anbefaling"].upper() in ["KØB","STÆRKT KØB"]]
+            saelg = [r for r in kands if parse_analyse(r.get("analyse",""))["anbefaling"].upper() in ["SÆLG","SAELG"]]
+            andre = [r for r in kands if r not in koeb and r not in saelg]
 
             if koeb:
                 st.markdown('<p style="font-family:Space Mono,monospace;font-size:.68rem;color:#4ade80;margin-bottom:.8rem">▸ KØB SIGNALER</p>', unsafe_allow_html=True)
@@ -748,10 +780,15 @@ with tab3:
                 for r in saelg:
                     vis_signal_kort(r, cash_dkk, cash_usd, cash_end, pf, vis_koeb=False)
 
-            if hold and not koeb and not saelg:
-                st.markdown('<p style="font-family:Space Mono,monospace;font-size:.68rem;color:#facc15;margin-bottom:.8rem">▸ HOLD / VENT</p>', unsafe_allow_html=True)
-                for r in hold:
+            if andre:
+                st.markdown('<p style="font-family:Space Mono,monospace;font-size:.68rem;color:#facc15;margin:1.2rem 0 .8rem">▸ HOLD / VENT</p>', unsafe_allow_html=True)
+                for r in andre:
                     vis_signal_kort(r, cash_dkk, cash_usd, cash_end, pf, vis_koeb=False)
+
+            # Safety: if ALL ended in same bucket show them all regardless
+            if not koeb and not saelg and not andre:
+                for r in kands:
+                    vis_signal_kort(r, cash_dkk, cash_usd, cash_end, pf)
 
         # ── Screener-opdagelser (ikke Groq-analyseret) ────────
         if screener and screener.get("resultater"):
