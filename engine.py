@@ -88,14 +88,6 @@ def log(besked):
     except:
         pass
 
-def _gem_json_atomisk(filepath, data):
-    """Skriv JSON atomisk — undgår truncated/korrupte filer ved nedbrud."""
-    import tempfile
-    tmp = filepath + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False)
-    os.replace(tmp, filepath)
-
 # ════════════════════════════════════════════════════════════
 # PORTFOLIO
 # ════════════════════════════════════════════════════════════
@@ -274,73 +266,64 @@ def tjek_saelg_signaler():
 # ════════════════════════════════════════════════════════════
 def hent_makro():
     log("Henter makro: VIX, SP500, Fear&Greed...")
-    last_err = None
-    for forsøg in range(3):
+    try:
+        vix     = float(yf.Ticker("^VIX").history(period="5d")["Close"].iloc[-1])
+        sp      = yf.Ticker("^GSPC").history(period="1y")
+        sp_pris = float(sp["Close"].iloc[-1])
+        sp_sma  = float(sp["Close"].rolling(200).mean().iloc[-1])
+        sp_sma50= float(sp["Close"].rolling(50).mean().iloc[-1])
+        sp_trend= sp_pris > sp_sma
+
+        # SP500 momentum
+        sp_1m_afkast = float((sp_pris / sp["Close"].iloc[-22] - 1) * 100) if len(sp) >= 22 else 0.0
+
+        # 10-årig obligationsrente (proxy for rentepres)
         try:
-            if forsøg > 0:
-                log(f"Makro retry {forsøg+1}/3...")
-                time.sleep(4 * forsøg)
+            tnx = yf.Ticker("^TNX").history(period="5d")["Close"].iloc[-1]
+            rente_txt = f"{tnx:.2f}%"
+            rente_advarsel = tnx > 4.5
+        except:
+            rente_txt = "N/A"
+            rente_advarsel = False
 
-            vix     = float(yf.Ticker("^VIX").history(period="5d")["Close"].iloc[-1])
-            sp      = yf.Ticker("^GSPC").history(period="1y")
-            sp_pris = float(sp["Close"].iloc[-1])
-            sp_sma  = float(sp["Close"].rolling(200).mean().iloc[-1])
-            sp_sma50= float(sp["Close"].rolling(50).mean().iloc[-1])
-            sp_trend= sp_pris > sp_sma
+        vix_status = "Roligt" if vix < 20 else "Uroligt" if vix < 30 else "PANIK"
 
-            sp_1m_afkast = float((sp_pris / sp["Close"].iloc[-22] - 1) * 100) if len(sp) >= 22 else 0.0
+        # Score-justering: mere nuanceret end før
+        if vix > 30:
+            just = -2.5
+        elif vix > 25:
+            just = -1.5
+        elif vix > 20:
+            just = -0.5
+        else:
+            just = 0.0
 
-            try:
-                tnx = yf.Ticker("^TNX").history(period="5d")["Close"].iloc[-1]
-                rente_txt = f"{tnx:.2f}%"
-                rente_advarsel = tnx > 4.5
-            except:
-                rente_txt = "N/A"
-                rente_advarsel = False
+        # Bonus ved stærkt marked
+        if sp_trend and sp_1m_afkast > 2:
+            just += 0.5
 
-            vix_status = "Roligt" if vix < 20 else "Uroligt" if vix < 30 else "PANIK"
-
-            if vix > 30:
-                just = -2.5
-            elif vix > 25:
-                just = -1.5
-            elif vix > 20:
-                just = -0.5
-            else:
-                just = 0.0
-
-            if sp_trend and sp_1m_afkast > 2:
-                just += 0.5
-
-            makro = {
-                "vix": round(vix, 2),
-                "vix_status": vix_status,
-                "sp_status": "Optrend" if sp_trend else "Nedtrend",
-                "sp_pris": round(sp_pris, 2),
-                "sp_sma200": round(sp_sma, 2),
-                "sp_sma50": round(sp_sma50, 2),
-                "sp_1m_afkast": round(sp_1m_afkast, 2),
-                "rente_10y": rente_txt,
-                "rente_advarsel": rente_advarsel,
-                "justering": round(just, 2),
-                "stop_koeb": vix > 30,
-                "forsigtig": vix > 25,
-            }
-            _gem_json_atomisk(MAKRO_FILE, makro)
-            log(f"Makro OK: VIX={vix:.1f}, SP500={sp_status_str(makro)}, Justering={just:+.1f}")
-            return makro
-        except Exception as e:
-            last_err = e
-            log(f"Makro fejl forsøg {forsøg+1}: {e}")
-
-    log(f"Makro: alle 3 forsøg fejlede — bruger fallback. Sidst: {last_err}")
-    eksisterende = _safe_json_load(MAKRO_FILE)
-    if eksisterende and eksisterende.get("vix_status") not in [None, "Ukendt", ""]:
-        log("Makro: bruger eksisterende gemt data som fallback")
-        return eksisterende
-    return {"vix": 20, "justering": 0, "stop_koeb": False, "forsigtig": False,
-            "vix_status": "Ukendt", "sp_status": "Ukendt", "sp_1m_afkast": 0,
-            "rente_10y": "N/A", "rente_advarsel": False}
+        makro = {
+            "vix": round(vix, 2),
+            "vix_status": vix_status,
+            "sp_status": "Optrend" if sp_trend else "Nedtrend",
+            "sp_pris": round(sp_pris, 2),
+            "sp_sma200": round(sp_sma, 2),
+            "sp_sma50": round(sp_sma50, 2),
+            "sp_1m_afkast": round(sp_1m_afkast, 2),
+            "rente_10y": rente_txt,
+            "rente_advarsel": rente_advarsel,
+            "justering": round(just, 2),
+            "stop_koeb": vix > 30,
+            "forsigtig": vix > 25,
+        }
+        with open(MAKRO_FILE, "w", encoding="utf-8") as f:
+            json.dump(makro, f, ensure_ascii=False)
+        log(f"Makro OK: VIX={vix:.1f}, SP500={'Optrend' if sp_trend else 'Nedtrend'} ({sp_1m_afkast:+.1f}% 1M), Justering={just:+.1f}")
+        return makro
+    except Exception as e:
+        log(f"Makro fejl: {e}")
+        return {"vix": 20, "justering": 0, "stop_koeb": False, "forsigtig": False,
+                "vix_status": "Ukendt", "sp_status": "", "sp_1m_afkast": 0}
 
 def sp_status_str(m):
     return m.get("sp_status","") + f" ({m.get('sp_1m_afkast',0):+.1f}% 1M)"
@@ -542,19 +525,12 @@ def teknisk_screening(ticker):
             detaljer["pct_fra_52w_high"] = None
 
         # ── Trend styrke (ADX-proxy) ────────────────────────
-        try:
-            afkast_1m = float((pris / close.iloc[-22] - 1) * 100) if len(close) >= 22 else None
-            afkast_3m = float((pris / close.iloc[-66] - 1) * 100) if len(close) >= 66 else None
-            import math as _math
-            detaljer["afkast_1m"] = round(afkast_1m, 1) if afkast_1m is not None and not _math.isnan(afkast_1m) else None
-            detaljer["afkast_3m"] = round(afkast_3m, 1) if afkast_3m is not None and not _math.isnan(afkast_3m) else None
-        except:
-            detaljer["afkast_1m"] = None
-            detaljer["afkast_3m"] = None
-            afkast_1m = None
-            afkast_3m = None
+        afkast_1m = float((pris / close.iloc[-22] - 1) * 100) if len(close) >= 22 else 0
+        afkast_3m = float((pris / close.iloc[-66] - 1) * 100) if len(close) >= 66 else 0
+        detaljer["afkast_1m"] = round(afkast_1m, 1)
+        detaljer["afkast_3m"] = round(afkast_3m, 1)
 
-        if afkast_1m and afkast_3m and afkast_1m > 5 and afkast_3m > 10:
+        if afkast_1m > 5 and afkast_3m > 10:
             score += 0.5
             grunde.append(f"Momentum: +{afkast_1m:.1f}% 1M / +{afkast_3m:.1f}% 3M")
 
@@ -802,23 +778,6 @@ def hent_short_interest(ticker):
     except:
         return 0.0, "Ingen short data"
 
-def hent_naeste_earnings(ticker):
-    """Hent næste earnings dato fra yfinance."""
-    try:
-        t = yf.Ticker(ticker)
-        cal = t.calendar
-        if cal is not None and not cal.empty:
-            dato = cal.columns[0]
-            return str(dato.date()) if hasattr(dato, 'date') else str(dato)
-        earnings_dates = t.earnings_dates
-        if earnings_dates is not None and not earnings_dates.empty:
-            fremtidige = earnings_dates[earnings_dates.index > pd.Timestamp.now()]
-            if not fremtidige.empty:
-                return str(fremtidige.index[0].date())
-        return None
-    except:
-        return None
-
 # ════════════════════════════════════════════════════════════
 # HURTIG SENTIMENT (nyhedsbaseret)
 # ════════════════════════════════════════════════════════════
@@ -887,58 +846,41 @@ def hent_market_sentiment(ticker):
 # ════════════════════════════════════════════════════════════
 # POSITION SIZING — forbedret Kelly
 # ════════════════════════════════════════════════════════════
-def beregn_kelly_rr(prob_pct, entry, stop, target):
-    """Ægte Kelly baseret på R/R ratio og sandsynlighed."""
-    try:
-        p = float(prob_pct) / 100
-        q = 1 - p
-        b = (float(target) - float(entry)) / (float(entry) - float(stop))
-        kelly = (p * b - q) / b
-        return max(0.03, min(kelly, 0.30))
-    except:
-        return None
-
-def beregn_position(score, cash_dkk, cash_usd, er_dansk=False, platform_pref=None, ticker_symbol=None):
+def beregn_position(score, cash_dkk, cash_usd, er_dansk=False, platform_pref=None):
     """
-    Vælger platform baseret på aktie-type:
-    - eToro for alle US-aktier (ingen kommission, brudsaktier)
-    - Nordnet for danske aktier (.CO suffix)
-    - Endavu for billige danske aktier (.CO, entry < 500 DKK)
-    platform_pref override respekteres stadig.
+    Forbedret Kelly-lignende position sizing.
+    Tre platforme: Nordnet (DKK), eToro (USD), Endavu (DKK).
     """
-    USD_DKK = 7.0  # Approx kurs til sammenligning på tværs af valutaer
+    # Kelly fraktioner baseret på conviction
+    if score >= 9.0:
+        kelly = 0.25; begrundelse = "Ekstremt høj conviction"
+    elif score >= 8.5:
+        kelly = 0.20; begrundelse = "Meget høj conviction"
+    elif score >= 8.0:
+        kelly = 0.15; begrundelse = "Høj conviction"
+    elif score >= 7.0:
+        kelly = 0.10; begrundelse = "God conviction"
+    elif score >= 6.0:
+        kelly = 0.06; begrundelse = "Moderat conviction"
+    else:
+        kelly = 0.03; begrundelse = "Lav conviction"
 
-    if score >= 9.0:   kelly = 0.25; begrundelse = "Ekstremt høj conviction"
-    elif score >= 8.5: kelly = 0.20; begrundelse = "Meget høj conviction"
-    elif score >= 8.0: kelly = 0.15; begrundelse = "Høj conviction"
-    elif score >= 7.0: kelly = 0.10; begrundelse = "God conviction"
-    elif score >= 6.0: kelly = 0.06; begrundelse = "Moderat conviction"
-    else:              kelly = 0.03; begrundelse = "Lav conviction"
+    if er_dansk or platform_pref == "nordnet":
+        beloeb = round(cash_dkk * kelly)
+        return {"beloeb": beloeb, "valuta": "DKK", "platform": "Nordnet", "begrundelse": begrundelse}
 
-    # Hvis bruger angiver specifik platform
-    if platform_pref == "nordnet":
-        return {"beloeb": min(round(cash_dkk * kelly), int(cash_dkk)), "valuta": "DKK", "platform": "Nordnet", "begrundelse": begrundelse}
     if platform_pref == "endavu":
-        return {"beloeb": min(round(cash_dkk * kelly), int(cash_dkk)), "valuta": "DKK", "platform": "Endavu", "begrundelse": begrundelse}
-    if platform_pref == "etoro":
-        return {"beloeb": min(round(cash_usd * kelly, 2), cash_usd), "valuta": "USD", "platform": "eToro", "begrundelse": begrundelse}
+        endavu_dkk = cash_dkk  # Endavu bruger DKK
+        beloeb = round(endavu_dkk * kelly)
+        return {"beloeb": beloeb, "valuta": "DKK", "platform": "Endavu", "begrundelse": begrundelse}
 
-    # Danske aktier (.CO suffix)
-    if er_dansk:
-        # Endavu til billige danske aktier (entry < 500 DKK)
-        try:
-            k = hent_kurs(ticker_symbol) if ticker_symbol else None
-            if k and k["pris"] < 500:
-                endavu_beloeb = min(round(cash_dkk * kelly), int(cash_dkk))
-                return {"beloeb": endavu_beloeb, "valuta": "DKK", "platform": "Endavu", "begrundelse": begrundelse}
-        except:
-            pass
-        nordnet_beloeb = min(round(cash_dkk * kelly), int(cash_dkk))
-        return {"beloeb": nordnet_beloeb, "valuta": "DKK", "platform": "Nordnet", "begrundelse": begrundelse}
-
-    # US aktier → eToro, cap ved faktisk cash
-    beloeb = min(round(cash_usd * kelly, 2), cash_usd)
-    return {"beloeb": beloeb, "valuta": "USD", "platform": "eToro", "begrundelse": begrundelse}
+    # Standard: eToro hvis der er USD, ellers Nordnet
+    if cash_usd >= 50:
+        return {"beloeb": round(cash_usd * kelly, 2), "valuta": "USD",
+                "platform": "eToro", "begrundelse": begrundelse}
+    else:
+        return {"beloeb": round(cash_dkk * kelly), "valuta": "DKK",
+                "platform": "Nordnet", "begrundelse": begrundelse}
 
 # ════════════════════════════════════════════════════════════
 # SAMLET SCORE
@@ -1101,58 +1043,49 @@ def analyser_med_llama(tekst, ticker, screener_data=None):
         except:
             pass
 
-        # Hent seneste nyheder til prompt
-        _, nyheder_liste = hurtig_sentiment(ticker)
-        nyheds_sektion = ""
-        if nyheder_liste:
-            nyheder_linjer = "\n".join(f"- [{s.upper()}] {titel}" for s, titel in nyheder_liste)
-            nyheds_sektion = f"\n\n6. SENESTE NYHEDER:\n{nyheder_linjer}\n"
-
-        # Hent næste earnings dato
-        earnings_dato = hent_naeste_earnings(ticker)
-        earnings_sektion = f"\n\n7. NÆSTE EARNINGS DATO: {earnings_dato}\n" if earnings_dato else ""
-
         prompt = (
             "DU SKAL SVARE I PRÆCIS DETTE FORMAT — INGEN ANDRE ORD:\n\n"
             "ANBEFALING: KØB\n"
-            "SCORE: 8\n"
-            "SANDSYNLIGHED: 72%\n"
+            "SCORE: 7\n"
+            "SANDSYNLIGHED: 62%\n"
             f"ENTRY PRIS: $180.50\n"
-            "STOP LOSS: $168.00\n"
+            "STOP LOSS: $165.00\n"
             "TARGET PRIS: $205.00\n"
-            "RESUMÉ: Revenue +18% YoY, EPS beat +9%, RSI 52 stigende, stærk FCF.\n"
-            "POSITIVE FAKTORER:\n- Revenue vækst +18%\n- EPS beat +9%\n- RSI momentum\n"
-            "NEGATIVE FAKTORER:\n- Høj gæld D/E 180\n"
-            "ADVARSEL: Overvåg renterisiko\n"
+            "RESUMÉ: Revenue +18% YoY men EPS-vækst aftager. RSI 52 neutral. FCF stærk.\n"
+            "POSITIVE FAKTORER:\n- Revenue vækst +18%\n- EPS beat +9%\n"
+            "NEGATIVE FAKTORER:\n- Høj gæld D/E 180\n- RSI ikke overbevisende\n"
+            "ADVARSEL: Høj gæld — sælg hvis renten stiger\n"
             "TIDSHORISONT: 30-60 dage\n"
             "---\n\n"
             f"ANALYSER NU DENNE AKTIE: {ticker}\n"
             f"{pris_nu}\n"
             "DATA:\n"
             f"=== REGNSKAB ===\n{tekst[:2000]}\n\n"
-            f"=== SENTIMENT ===\n{market_sentiment}\n\n"
+            f"=== SENTIMENT + ANALYST ===\n{market_sentiment}\n\n"
             f"{fund_sektion}"
             f"{teknik_sektion}"
             f"{historik_sektion}"
-            f"{nyheds_sektion}"
-            f"{earnings_sektion}"
-            "\nVIGTIGT:\n"
-            "1. Start DIREKTE med 'ANBEFALING:' — ingen introduktion\n"
-            "2. ENTRY PRIS skal være nuværende markedspris ±3%\n"
-            "3. STOP LOSS skal altid beskytte max 7% tab fra entry\n"
-            "4. TARGET PRIS skal give minimum 2:1 risk/reward ratio\n"
-            "5. SCORE = 1-10 heltal\n"
-            "6. SANDSYNLIGHED = din confidence i % (tal + % tegn)\n"
-            "7. Skriv INTET andet end de 10 linjer i formatet ovenfor\n"
+            "\nKRITISKE REGLER — læs disse nøje:\n"
+            "1. Start DIREKTE med 'ANBEFALING:' — ingen introduktion overhovedet\n"
+            "2. SCORE skal DIFFERENTIERES: Brug hele skalaen 1-10. Score 9-10 kun hvis ALT peger op. "
+            "Score 7-8 for gode aktier. Score 5-6 for neutrale. Score under 5 for problematiske.\n"
+            "3. SANDSYNLIGHED skal afspejle din usikkerhed: "
+            "Markedet er uforudsigeligt. Brug 55-70% for normale tilfælde. "
+            "Over 80% kun ved ekstraordinære setup. Aldrig 85% på alt.\n"
+            "4. ENTRY PRIS = nuværende markedspris ±2%\n"
+            "5. STOP LOSS = 7-10% under entry (sæt det præcist ved teknisk støtte)\n"
+            "6. TARGET PRIS = realistisk kursmål baseret på fundamental fair value\n"
+            "7. Vær KRITISK — det er bedre at sige HOLD end at give falsk KØB-signal\n"
+            "8. Skriv INTET andet end de 10 linjer i formatet\n"
         )
 
         response = client.chat.completions.create(
             model=GROQ_MODEL,
             messages=[
                 {"role": "system", "content": (
-                    "Du er en senior kvantitativ analytiker hos et top hedgefond med 20 års erfaring. "
-                    "Du har slået markedet med 18% p.a. Du er ekstremt præcis, skeptisk og datadrevet. "
-                    "Du giver KUN konkrete handelsanbefalinger med eksakte priser."
+                    "Du er en trading-algoritme. Du returnerer KUN strukturerede handelsanbefalinger "
+                    "i det præcise format du får vist. Aldrig fri tekst. Aldrig introduktioner. "
+                    "Din første linje er altid 'ANBEFALING:' efterfulgt af KØB, SÆLG eller HOLD."
                 )},
                 {"role": "user", "content": prompt}
             ],
@@ -1211,28 +1144,18 @@ def koer_screener(hurtig=True):
     cash_usd = pf["cash"].get("etoro_usd", 0)
 
     sektorer = (["Tech", "Finans", "Sundhed", "Dansk"] if hurtig
-                else ["Tech", "Finans", "Sundhed", "Forbrug", "Energi", "Industri", "Materialer", "Kommunikation", "Dansk"])
+                else ["Tech", "Finans", "Sundhed", "Forbrug", "Energi", "Industri", "Kommunikation", "Dansk"])
 
     univers = {
         "Tech":          ["AAPL","MSFT","NVDA","GOOGL","META","AMD","INTC","CRM","ADBE","ORCL",
-                          "QCOM","TXN","AMAT","LRCX","KLAC","NOW","PANW","CRWD","SNOW","PLTR",
-                          "ASML","TSM","AVGO","MU","ARM","DELL","NXPI","ON","MPWR","MRVL",
-                          "SMCI","HPE","STX","WDC","LOGI","ZBRA","EPAM","GDDY","NET","DDOG"],
-        "Finans":        ["JPM","BAC","GS","MS","WFC","V","MA","AXP","BLK","SCHW","COF","PYPL",
-                          "C","USB","TFC","PNC","ICE","CME","SPGI","MCO","CB","PGR","MET","AFL",
-                          "BX","KKR","APO","NDAQ","IBKR"],
-        "Sundhed":       ["JNJ","UNH","LLY","PFE","ABBV","MRK","BMY","AMGN","GILD","REGN","ISRG","TMO",
-                          "CVS","CI","HUM","ELV","MDT","BSX","SYK","ZTS","VRTX","BIIB","IQV","DGX",
-                          "A","MTD","WAT","IDXX","PODD","DXCM"],
-        "Forbrug":       ["AMZN","TSLA","HD","MCD","NKE","SBUX","TGT","COST","BKNG","CMG",
-                          "TJX","ROST","DG","DLTR","ULTA","YUM","WMT","LOW","EBAY","ETSY","RCL","CCL"],
-        "Energi":        ["XOM","CVX","COP","EOG","SLB","PSX","OXY","HAL","BKR","VLO","MPC","DVN"],
-        "Industri":      ["CAT","HON","RTX","LMT","UPS","DE","GE","MMM","BA","FDX","CSX","UNP",
-                          "NSC","PCAR","EMR","ETN","ROK","PH","ITW","FAST","ODFL","VRSK"],
-        "Materialer":    ["LIN","APD","SHW","ECL","NEM","FCX","ALB","DD","PPG","IFF"],
-        "Kommunikation": ["NFLX","DIS","CMCSA","T","TMUS","WBD","PARA","SPOT","TTD","ZG"],
-        "Dansk":         ["NOVO-B.CO","MAERSK-B.CO","DSV.CO","PNDORA.CO","COLO-B.CO","TRYG.CO",
-                          "ORSTED.CO","CARL-B.CO","DEMANT.CO","GN.CO","AMBU-B.CO","RBREW.CO"],
+                          "QCOM","TXN","AMAT","LRCX","KLAC","NOW","PANW","CRWD","SNOW","PLTR"],
+        "Finans":        ["JPM","BAC","GS","MS","WFC","V","MA","AXP","BLK","SCHW","COF","PYPL"],
+        "Sundhed":       ["JNJ","UNH","LLY","PFE","ABBV","MRK","BMY","AMGN","GILD","REGN","ISRG","TMO"],
+        "Forbrug":       ["AMZN","TSLA","HD","MCD","NKE","SBUX","TGT","COST","BKNG","CMG"],
+        "Energi":        ["XOM","CVX","COP","EOG","SLB","PSX"],
+        "Industri":      ["CAT","HON","RTX","LMT","UPS","DE","GE","MMM"],
+        "Kommunikation": ["NFLX","DIS","CMCSA","T","TMUS","GOOGL","META"],
+        "Dansk":         ["NOVO-B.CO","MAERSK-B.CO","DSV.CO","PNDORA.CO","COLO-B.CO","TRYG.CO"],
     }
 
     alle = [(s, t) for s in sektorer for t in univers.get(s, [])]
@@ -1252,7 +1175,6 @@ def koer_screener(hurtig=True):
         # Insider + short bonusser
         insider_bonus, insider_txt = hent_insider_signal(ticker) if not ticker.endswith(".CO") else (0, "")
         short_bonus, short_txt     = hent_short_interest(ticker)  if not ticker.endswith(".CO") else (0, "")
-        earnings_dato = hent_naeste_earnings(ticker) if not ticker.endswith(".CO") else None
 
         # Nedskaler bonusser så de ikke dominerer
         insider_bonus = min(insider_bonus * 0.5, 0.5)
@@ -1261,6 +1183,18 @@ def koer_screener(hurtig=True):
         samlet = anvend_makro_justering(
             beregn_samlet(f_s, t_s, s_s, insider_bonus, short_bonus), makro
         )
+
+        # ── Momentum bonus: aktier med stærkt positivt momentum ──────
+        td = t_d if isinstance(t_d, dict) else {}
+        afkast_1m = td.get("afkast_1m", 0) or 0
+        afkast_3m = td.get("afkast_3m", 0) or 0
+        pct_fra_high = td.get("pct_fra_52w_high", -50) or -50
+        import math as _math
+        if not _math.isnan(float(afkast_1m if afkast_1m else 0)):
+            if afkast_1m > 10 and afkast_3m > 15:
+                samlet = min(10.0, samlet + 0.3)  # Stærkt momentum
+            elif afkast_1m < -15:
+                samlet = max(1.0, samlet - 0.5)  # Dårlig momentum
 
         print(f"→ {samlet:.1f}")
         res.append({
@@ -1275,7 +1209,6 @@ def koer_screener(hurtig=True):
             "nyheder":   nyheder,
             "insider":   insider_txt,
             "short":     short_txt,
-            "naeste_earnings": earnings_dato,
             "anbefaling": score_til_tekst(samlet, makro),
             "grunde":    (f_d.get("grunde", []) if isinstance(f_d, dict) else []) +
                          (t_d.get("grunde", []) if isinstance(t_d, dict) else []),
@@ -1297,11 +1230,12 @@ def koer_screener(hurtig=True):
             trained += 1
     log(f"RAG: {trained} regnskaber gemt.")
 
-    _gem_json_atomisk(SCREENER_FILE, {
-        "dato": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "makro": makro,
-        "resultater": res
-    })
+    with open(SCREENER_FILE, "w", encoding="utf-8") as f:
+        json.dump({
+            "dato": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "makro": makro,
+            "resultater": res
+        }, f, ensure_ascii=False)
 
     kandidater = [r for r in res if r["samlet"] >= 6.5]
     log(f"Screener færdig: {len(res)} aktier, {len(kandidater)} kandidater ≥6.5")
@@ -1314,33 +1248,92 @@ def koer_dyb_analyse(kandidater, makro=None):
     if not kandidater:
         return []
 
-    # ── Conviction filter: kun aktier hvor fundamental OG teknisk OG sentiment peger samme vej ──
+    # ── Anti-repetitions filter: hent hvad vi anbefalte de sidste 5 dage ──
+    historik = _safe_json_load(BACKTEST_HISTORIK_FILE) or []
+    graense_dato = (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d")
+    nylige_anbefalinger = {
+        h["ticker"] for h in historik
+        if h.get("dato", "") >= graense_dato
+        and h.get("anbefaling") in ["KØB", "STÆRKT", "KØB"]
+    }
+    # Tæl hvor mange gange hver ticker er anbefalet de seneste 5 dage
+    antal_anbefalinger = {}
+    for h in historik:
+        if h.get("dato", "") >= graense_dato:
+            t = h["ticker"]
+            antal_anbefalinger[t] = antal_anbefalinger.get(t, 0) + 1
+
+    log(f"Anti-repetition: {len(nylige_anbefalinger)} aktier anbefalet de seneste 5 dage")
+
+    # ── Relativ styrke: sorter inden for sektorer ──────────────────────
+    sektorer_scores = {}
+    for r in kandidater:
+        s = r.get("sektor", "")
+        if s not in sektorer_scores:
+            sektorer_scores[s] = []
+        sektorer_scores[s].append(r["samlet"])
+
+    def relativ_styrke(r):
+        """Beregn om aktien er stærkere end sektorgennemsnittet."""
+        s = r.get("sektor", "")
+        scores = sektorer_scores.get(s, [r["samlet"]])
+        gns = sum(scores) / len(scores)
+        return r["samlet"] - gns  # Positiv = stærkere end sektor
+
+    # ── Conviction filter: strammere krav ──────────────────────────────
     stærke = []
     for r in kandidater:
         f = r.get("fundamental", 0)
         t = r.get("teknisk", 0)
         s = r.get("sentiment", 0)
-        # Alle tre skal pege i positiv retning — screener-score over 7.0
-        if f >= 5.5 and t >= 5.5 and s >= 0 and r["samlet"] >= 7.0:
-            stærke.append(r)
+        ticker = r["ticker"]
+        gange_anbefalet = antal_anbefalinger.get(ticker, 0)
 
-    # Sorter og tag de 5 bedste
-    stærke.sort(key=lambda x: x["samlet"], reverse=True)
-    kandidater_filtreret = stærke[:5]
+        # Strammere krav end før
+        if f < 6.5 or t < 6.0 or r["samlet"] < 7.5:
+            continue
+
+        # Strafafelt for aktier anbefalet mange gange
+        repetitions_straf = gange_anbefalet * 0.3
+        justeret_score = r["samlet"] - repetitions_straf
+
+        # Kræv minimum relativ styrke i sektoren
+        rel_styrke = relativ_styrke(r)
+
+        stærke.append({
+            **r,
+            "justeret_score": round(justeret_score, 1),
+            "rel_styrke": round(rel_styrke, 2),
+            "gange_anbefalet_5d": gange_anbefalet,
+        })
+
+    # Sorter efter justeret score (straffer repetition)
+    stærke.sort(key=lambda x: x["justeret_score"], reverse=True)
+
+    # Maksimalt 5 — og max 2 fra samme sektor
+    kandidater_filtreret = []
+    sektor_count = {}
+    for r in stærke:
+        sektor = r.get("sektor", "")
+        if sektor_count.get(sektor, 0) >= 2:
+            continue  # Max 2 per sektor
+        kandidater_filtreret.append(r)
+        sektor_count[sektor] = sektor_count.get(sektor, 0) + 1
+        if len(kandidater_filtreret) >= 5:
+            break
 
     if not kandidater_filtreret:
-        # Fallback: tag top 3 af de originale hvis ingen passerer conviction-filter
-        kandidater_filtreret = sorted(kandidater, key=lambda x: x["samlet"], reverse=True)[:3]
+        # Fallback: top 3 med mindst repetition
+        fallback = sorted(kandidater, key=lambda x: (
+            -x["samlet"] + antal_anbefalinger.get(x["ticker"], 0) * 0.3
+        ))[:3]
+        kandidater_filtreret = fallback
+        log("Conviction fallback: bruger top 3 med lavest repetition")
 
-    log(f"Conviction filter: {len(kandidater)} kandidater → {len(kandidater_filtreret)} til dyb analyse")
-
-    # Hent eksisterende holdings sektorer
-    pf = indlaes_portfolio()
-    ejede_sektorer = {}
-    for h in pf.get("holdings", []):
-        sektor = h.get("sektor", "")  # may not exist
-        if sektor:
-            ejede_sektorer[sektor] = ejede_sektorer.get(sektor, 0) + 1
+    log(f"Conviction filter: {len(kandidater)} → {len(stærke)} → {len(kandidater_filtreret)} til dyb analyse")
+    for r in kandidater_filtreret:
+        gange = r.get("gange_anbefalet_5d", 0)
+        log(f"  {r['ticker']}: score {r['samlet']} → justeret {r.get('justeret_score', r['samlet'])} (anbefalet {gange}x de seneste 5d)")
 
     res = []
     for r in kandidater_filtreret:
@@ -1353,13 +1346,15 @@ def koer_dyb_analyse(kandidater, makro=None):
         if not analyse:
             continue
         llama_s = ekstraher_score(analyse)
-        komb    = round((r["samlet"] * 0.5 + llama_s * 0.5), 1)
+        # Groq får 60% vægt, screener 40% — Groq er mere nuanceret
+        komb = round((r["samlet"] * 0.40 + llama_s * 0.60), 1)
         if makro:
             komb = anvend_makro_justering(komb, makro)
-        # Sektor diversificering: reducer score hvis sektoren allerede er overrepræsenteret
-        kandidat_sektor = r.get("sektor", "")
-        if ejede_sektorer.get(kandidat_sektor, 0) >= 2:
-            komb = round(max(1.0, komb - 0.5), 1)
+        # Straf aktier der er anbefalet mange gange de seneste 5 dage
+        gange = r.get("gange_anbefalet_5d", 0)
+        komb = round(max(1.0, komb - gange * 0.2), 1)
+
+        log(f"  {r['ticker']}: screener={r['samlet']} Groq={llama_s} kombineret={komb} (anbefalet {gange}x)")
         res.append({
             "ticker":     r["ticker"],
             "sektor":     r["sektor"],
@@ -1425,67 +1420,6 @@ def koer_finbert_sentiment(tickers=None):
         return []
 
 # ════════════════════════════════════════════════════════════
-# RE-ANALYSE AF AKTIVE HANDLER
-# ════════════════════════════════════════════════════════════
-def reanalyser_aktive_handler():
-    """Re-analyserer alle aktive handler dagligt med friske data."""
-    log("Re-analyserer aktive handler...")
-    handler = _safe_json_load(AKTIVE_HANDLER_FILE) or []
-    aktive = [h for h in handler if h.get("status") == "aktiv"]
-    if not aktive:
-        log("Ingen aktive handler at re-analysere.")
-        return []
-
-    resultater = []
-    for h in aktive[:5]:  # Max 5 for at spare Groq-tokens
-        ticker = h.get("ticker", "")
-        if not ticker:
-            continue
-        log(f"Re-analyserer: {ticker}")
-        try:
-            f_s, f_d = fundamental_screening(ticker)
-            t_s, t_d = teknisk_screening(ticker)
-            s_s, _ = hurtig_sentiment(ticker)
-            tekst = hent_earnings_tekst(ticker)
-
-            screener_data = {
-                "ticker": ticker, "sektor": h.get("platform",""),
-                "fundamental": f_s or 5, "teknisk": t_s or 5, "sentiment": s_s or 0,
-                "samlet": round(0.45*(f_s or 5) + 0.40*(t_s or 5) + 0.15*((s_s+1)/2*10), 1),
-                "fund_data": f_d if isinstance(f_d, dict) else {},
-                "teknik_data": t_d if isinstance(t_d, dict) else {},
-            }
-
-            analyse = analyser_med_llama(tekst or "", ticker, screener_data) if tekst else ""
-
-            k = hent_kurs(ticker)
-            pris_nu = k["pris"] if k else h.get("koebspris", 0)
-
-            resultater.append({
-                "ticker": ticker,
-                "handler_id": h.get("id"),
-                "koebspris": h.get("koebspris"),
-                "pris_nu": pris_nu,
-                "afkast": round((pris_nu / h["koebspris"] - 1) * 100, 1) if h.get("koebspris") else 0,
-                "stop_loss": h.get("stop_loss"),
-                "target": h.get("target"),
-                "ny_analyse": analyse,
-                "teknisk_score": t_s,
-                "fundamental_score": f_s,
-                "dato": datetime.now().strftime("%Y-%m-%d %H:%M"),
-            })
-            time.sleep(1)
-        except Exception as e:
-            log(f"Re-analyse fejl for {ticker}: {e}")
-
-    _gem_json_atomisk(os.path.join(DATA_DIR, "reanalyse_seneste.json"), {
-        "dato": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "resultater": resultater
-    })
-    log(f"Re-analyse færdig: {len(resultater)} handler analyseret.")
-    return resultater
-
-# ════════════════════════════════════════════════════════════
 # DAILY BRIEF
 # ════════════════════════════════════════════════════════════
 def koer_daily_brief(hurtig=True):
@@ -1502,7 +1436,8 @@ def koer_daily_brief(hurtig=True):
         "top_kandidater": dybe,
         "alle_screener": alle[:30],
     }
-    _gem_json_atomisk(BRIEF_FILE, brief)
+    with open(BRIEF_FILE, "w", encoding="utf-8") as f:
+        json.dump(brief, f, ensure_ascii=False)
 
     # Tjek alerts
     _tjek_og_send_alerts(dybe)
@@ -1583,39 +1518,11 @@ def koer_backtest():
         avg_koeb    = (sum(r["afkast_30d"] for r in koeb_rækker) / len(koeb_rækker)
                        if koeb_rækker else 0)
 
-        # Sharpe ratio (simplified: mean/std of returns)
-        sharpe = 0.0
-        if alle:
-            afkast_liste = [r["afkast_30d"] for r in alle]
-            std = (sum((x - avg_afkast)**2 for x in afkast_liste) / len(afkast_liste)) ** 0.5
-            sharpe = (avg_afkast - 0.4) / std if std > 0 else 0  # 0.4% = månedlig risikofri rente
-
-        # Max drawdown
-        max_dd = 0.0
-        if alle:
-            sorteret = sorted(alle, key=lambda x: x["dato"])
-            kumul = 1.0
-            peak = 1.0
-            for r in sorteret:
-                kumul *= (1 + r["afkast_30d"] / 100)
-                if kumul > peak:
-                    peak = kumul
-                dd = (peak - kumul) / peak * 100
-                if dd > max_dd:
-                    max_dd = dd
-
-        antal_vindere = sum(1 for r in alle if r["anbefaling"] in ["KØB","STÆRKT KØB"] and r["afkast_30d"] > 0)
-        antal_tabere  = sum(1 for r in alle if r["anbefaling"] in ["KØB","STÆRKT KØB"] and r["afkast_30d"] <= 0)
-
         statistik = {
             "antal_anbefalinger":   len(alle),
             "hit_rate_pct":         round(hit_rate, 1),
             "gns_afkast_30d_pct":   round(avg_afkast, 2),
             "gns_afkast_koeb_pct":  round(avg_koeb, 2),
-            "sharpe":               round(sharpe, 2),
-            "max_drawdown_pct":     round(max_dd, 1),
-            "antal_vindere":        antal_vindere,
-            "antal_tabere":         antal_tabere,
             "seneste_resultater":   alle[:20],
             "sidst_opdateret":      datetime.now().strftime("%Y-%m-%d %H:%M"),
         }
@@ -1662,10 +1569,7 @@ if __name__ == "__main__":
     cmd = sys.argv[1] if len(sys.argv) > 1 else "help"
     if   cmd == "brief":    koer_daily_brief("--komplet" not in sys.argv)
     elif cmd == "screener": koer_screener("--komplet" not in sys.argv)
-    elif cmd == "makro":
-        m = hent_makro()
-        _gem_json_atomisk(MAKRO_FILE, m)
-        print(json.dumps(m, indent=2, ensure_ascii=False))
+    elif cmd == "makro":    print(json.dumps(hent_makro(), indent=2, ensure_ascii=False))
     elif cmd == "dyb":
         # Hent screener-data og kør dyb analyse — gem resultatet i brief-filen
         data = hent_screener_data()
@@ -1681,14 +1585,14 @@ if __name__ == "__main__":
                 "top_kandidater": dybe,
                 "alle_screener":  data["resultater"][:30],
             }
-            _gem_json_atomisk(BRIEF_FILE, brief)
+            with open(BRIEF_FILE, "w", encoding="utf-8") as f:
+                json.dump(brief, f, ensure_ascii=False)
             _tjek_og_send_alerts(dybe)
             log(f"Dyb analyse færdig: {len(dybe)} analyseret, gemt i brief-fil.")
         else:
             log("Ingen screener-data fundet — kør 'screener' først.")
-    elif cmd == "backtest":   print(json.dumps(koer_backtest(), indent=2, ensure_ascii=False))
-    elif cmd == "sentiment":  koer_finbert_sentiment()
-    elif cmd == "reanalyser": reanalyser_aktive_handler()
+    elif cmd == "backtest":  print(json.dumps(koer_backtest(), indent=2, ensure_ascii=False))
+    elif cmd == "sentiment": koer_finbert_sentiment()
     else:
-        print("Brug: brief | screener | makro | dyb | backtest | sentiment | reanalyser")
+        print("Brug: brief | screener | makro | dyb | backtest | sentiment")
         print("Flag: --komplet (for fuld scanning)")
