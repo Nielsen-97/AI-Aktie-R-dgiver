@@ -29,6 +29,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # fuld git-historik — kræves af 'engine.py backfill'
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -64,11 +66,26 @@ jobs:
           GITHUB_ACTIONS: "true"
         run: python engine.py dyb
 
-      - name: Re-analysér aktive handler
+      - name: Re-analysér aktive handler (trailing stop, tids-stop, sælg-signaler)
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_ACTIONS: "true"
         run: python engine.py reanalyser
+
+      - name: Genskab ML-trænings-data fra git-historik (idempotent, springer over kendte)
+        env:
+          GITHUB_ACTIONS: "true"
+        run: python engine.py backfill
+
+      - name: Backtest tidligere anbefalinger (30-dages afkast)
+        env:
+          GITHUB_ACTIONS: "true"
+        run: python engine.py backtest
+
+      - name: Gentræn ML-model (kører kun når der er nok data)
+        env:
+          GITHUB_ACTIONS: "true"
+        run: python engine.py train
 
       - name: Gem resultater til repository
         run: |
@@ -76,6 +93,9 @@ jobs:
           git config user.email "bot@ai-aktie-raadgiver.dk"
           git add data/screener_seneste.json data/daily_brief_seneste.json data/makro_seneste.json || true
           git add data/alerts.json data/reanalyse_seneste.json || true
+          git add data/backtest_historik.json data/backtest_resultater.json || true
+          git add data/ml_training_data.json data/ml_model.pkl || true
+          git add data/aktive_handler.json || true
           git diff --staged --quiet || git commit -m "📈 Daglig scanning $(date +'%Y-%m-%d %H:%M UTC')"
           git push
 
@@ -84,29 +104,28 @@ jobs:
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           GITHUB_ACTIONS: "true"
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           python3 << 'PYTHON'
           import json, os, re, requests
+          import engine  # genbruger beregn_position så Kelly-logik ikke duplikeres
 
           discord_url = os.getenv("DISCORD_WEBHOOK", "")
           if not discord_url:
               print("Ingen DISCORD_WEBHOOK sat — springer over")
               exit(0)
 
-          # Læs brief
-          try:
-              with open("data/daily_brief_seneste.json", encoding="utf-8") as f:
-                  brief = json.load(f)
-          except Exception as e:
-              print(f"Kunne ikke læse brief: {e}")
-              brief = {}
+          def load(sti, default=None):
+              try:
+                  with open(sti, encoding="utf-8") as f:
+                      return json.load(f)
+              except Exception:
+                  return default if default is not None else {}
 
-          # Læs makro
-          try:
-              with open("data/makro_seneste.json", encoding="utf-8") as f:
-                  makro = json.load(f)
-          except:
-              makro = {}
+          brief     = load("data/daily_brief_seneste.json", {})
+          makro     = load("data/makro_seneste.json", {})
+          reanalyse = load("data/reanalyse_seneste.json", {})
+          portfolio = load("data/portfolio.json", {})
 
           dato  = brief.get("dato", "ukendt")
           vix   = float(makro.get("vix", 0) or 0)
@@ -115,85 +134,82 @@ jobs:
           just  = float(makro.get("justering", 0) or 0)
           kands = brief.get("top_kandidater", [])
 
+          cash_usd = float(portfolio.get("cash", {}).get("etoro_usd", 0))
+          cash_dkk = float(portfolio.get("cash", {}).get("nordnet_dkk", 0))
+          circuit_faktor, circuit_besked = engine.hent_circuit_breaker_faktor()
+          print(f"Cirkelbryder: {circuit_besked}")
+
           # Discord embed farve: grøn hvis bull, rød hvis bear
           embed_farve = 0x4ade80 if "Optrend" in sp else 0xf87171
 
-          # Byg embed fields for hvert signal
           fields = []
-
-          # Makro felt
           fields.append({
               "name": "📊 Makro",
               "value": f"VIX **{vix:.1f}** | SP500 **{sp}** {sp1m:+.1f}% 1M | Justering **{just:+.1f}**",
               "inline": False
           })
 
-          if kands:
-              for r in kands[:5]:  # Max 5 signaler
-                  analyse = r.get("analyse", "")
+          if circuit_faktor < 1.0:
+              fields.append({
+                  "name": "🛑 Cirkelbryder aktiv",
+                  "value": circuit_besked,
+                  "inline": False
+              })
 
+          # ── Sælg/hold-signaler for aktive positioner (kommer FØRST — det du skal handle på) ──
+          sael_linjer = []
+          for r in reanalyse.get("resultater", []):
+              if r.get("flag"):
+                  sael_linjer.append(f"🔴 **{r['ticker']}** ({r['afkast']:+.1f}%) — " + " · ".join(r["flag"]))
+          if sael_linjer:
+              fields.append({
+                  "name": "⚠️ Handling påkrævet på dine positioner",
+                  "value": "\n".join(sael_linjer[:8]),
+                  "inline": False
+              })
+
+          # ── Købssignaler — én kompakt linje pr. aktie ──────
+          if kands:
+              koeb_linjer = []
+              for r in kands[:5]:
+                  analyse = r.get("analyse", "")
                   anb_m    = re.search(r"ANBEFALING[:\s]+([A-ZÆØÅ ]+)", analyse)
                   entry_m  = re.search(r"ENTRY PRIS[:\s]+\$?([\d,.]+)", analyse)
                   stop_m   = re.search(r"STOP LOSS[:\s]+\$?([\d,.]+)", analyse)
                   target_m = re.search(r"TARGET PRIS[:\s]+\$?([\d,.]+)", analyse)
-                  prob_m   = re.search(r"SANDSYNLIGHED[:\s]+(\d+)%?", analyse)
-                  res_m    = re.search(r"RESUMÉ[:\s]+(.{10,120})", analyse)
 
                   anb    = anb_m.group(1).strip()    if anb_m    else "VENT"
                   entry  = entry_m.group(1)          if entry_m  else "?"
                   stop   = stop_m.group(1)           if stop_m   else "?"
                   target = target_m.group(1)         if target_m else "?"
-                  prob   = prob_m.group(1)           if prob_m   else "?"
-                  resume = res_m.group(1).strip()    if res_m    else ""
-
                   score  = r.get("kombineret", r.get("screener", "?"))
                   sektor = r.get("sektor", "")
+                  ticker = r.get("ticker", "")
 
-                  # Emoji baseret på anbefaling
-                  if "KØB" in anb:
-                      emoji = "🟢"
-                  elif "SÆLG" in anb:
-                      emoji = "🔴"
-                  else:
-                      emoji = "🟡"
+                  emoji = "🟢" if "KØB" in anb else ("🔴" if "SÆLG" in anb else "🟡")
 
-                  # Beregn platform og beløb
                   try:
-                      with open("data/portfolio.json", encoding="utf-8") as pf:
-                          portfolio = json.load(pf)
-                      cash_usd = float(portfolio.get("cash", {}).get("etoro_usd", 0))
-                      cash_dkk = float(portfolio.get("cash", {}).get("nordnet_dkk", 0))
-                      er_dansk = r.get("ticker","").endswith(".CO")
-                      kelly_map = {9.0:0.25,8.5:0.20,8.0:0.15,7.0:0.10,6.0:0.06}
-                      kelly = next((v for k,v in sorted(kelly_map.items(),reverse=True) if float(score or 0)>=k), 0.03)
-                      if er_dansk or cash_usd < 50:
-                          platform_anbefaling = f"Nordnet — køb for **{round(cash_dkk*kelly):,} DKK**"
-                      else:
-                          platform_anbefaling = f"eToro — køb for **${round(cash_usd*kelly,0):.0f} USD**"
-                  except:
-                      platform_anbefaling = "Se appen for position-størrelse"
+                      pos = engine.beregn_position(float(score or 0), cash_dkk, cash_usd, ticker.endswith(".CO"), circuit_faktor=circuit_faktor)
+                      beloeb_txt = f"{pos['beloeb']} {pos['valuta']} ({pos['platform']})"
+                  except Exception:
+                      beloeb_txt = "se app"
 
-                  felt_tekst = (
-                      f"**{anb}** — Score {score}/10\n"
-                      f"Entry: **${entry}** | Stop: ${stop} | Target: **${target}**\n"
-                      f"Sandsynlighed: {prob}% | {platform_anbefaling}\n"
+                  koeb_linjer.append(
+                      f"{emoji} **{ticker}** ({sektor}) — {anb} **{score}/10** · "
+                      f"${entry} → ${target} (SL ${stop}) · {beloeb_txt}"
                   )
-                  if resume:
-                      felt_tekst += f"_{resume[:100]}_"
-
-                  fields.append({
-                      "name": f"{emoji} {r['ticker']} · {sektor}",
-                      "value": felt_tekst,
-                      "inline": False
-                  })
+              fields.append({
+                  "name": f"📈 Købssignaler ({len(kands)})",
+                  "value": "\n".join(koeb_linjer),
+                  "inline": False
+              })
           else:
               fields.append({
-                  "name": "📭 Ingen signaler",
+                  "name": "📭 Ingen købssignaler",
                   "value": "Ingen aktier passerede conviction-filteret i dag.",
                   "inline": False
               })
 
-          # Byg Discord payload
           payload = {
               "username": "AI Aktie Rådgiver",
               "avatar_url": "https://cdn-icons-png.flaticon.com/512/2103/2103633.png",
@@ -202,15 +218,14 @@ jobs:
                   "color": embed_farve,
                   "fields": fields,
                   "footer": {
-                      "text": "Groq 70b · RSI/MACD · Insider · Conviction filter"
+                      "text": "Groq 70b · RSI/MACD · Trend/Momentum/Earnings-filter · ML-model"
                   }
               }]
           }
 
-          # Send til Discord
           r = requests.post(discord_url, json=payload, timeout=15)
           if r.status_code in [200, 204]:
-              print(f"Discord notifikation sendt! ({len(kands)} signaler)")
+              print(f"Discord notifikation sendt! ({len(kands)} køb, {len(sael_linjer)} handlings-flag)")
           else:
               print(f"Discord fejl: {r.status_code} — {r.text}")
           PYTHON
