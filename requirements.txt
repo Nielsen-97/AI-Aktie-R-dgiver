@@ -10,6 +10,9 @@ numpy>=1.26.0
 # AI/LLM
 groq>=0.9.0
 
+# Trænet ML-model (erstatter håndtunet vægtet formel når nok data er samlet)
+scikit-learn>=1.4.0
+
 # Nyhedsfeeds (sentiment)
 feedparser>=6.0.11
 
