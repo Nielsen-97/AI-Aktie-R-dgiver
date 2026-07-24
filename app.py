@@ -6,7 +6,7 @@
 ============================================================
 """
 import streamlit as st
-import os, sys, json, re, math, html as html_mod, requests
+import os, sys, json, re, math, html as html_mod, requests, base64
 from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -121,6 +121,76 @@ def trigger_github_scanning(scanning_type="komplet"):
     if r.status_code == 204:
         return True, ""
     return False, f"GitHub API fejl {r.status_code}: {r.text[:200]}"
+
+def sync_data_til_github():
+    """
+    Commit portfolio.json og aktive_handler.json til GitHub efter hvert køb/salg.
+
+    Uden dette ser GitHub Actions' daglige kørsel ALDRIG dine faktiske handler
+    — den checker kun git-repoet ud, og appen skriver ellers kun til sin egen
+    (adskilte) Streamlit Cloud-filsystem. Det betyder stop-loss cooldown og
+    den daglige re-analyse af aktive positioner ville køre på tom/forældet
+    data. Kaldes efter enhver handling der ændrer portfolio eller aktive
+    handler.
+    """
+    token = st.secrets.get("GITHUB_TOKEN", "")
+    repo  = st.secrets.get("GITHUB_REPO", "Nielsen-97/AI-Aktie-R-dgiver")
+    if not token:
+        return False, "GITHUB_TOKEN mangler i Streamlit Secrets — ændringer synkroniseres ikke til GitHub"
+
+    for filnavn in ["portfolio.json", "aktive_handler.json"]:
+        try:
+            lokal_sti = os.path.join(engine.DATA_DIR, filnavn)
+            with open(lokal_sti, "rb") as f:
+                indhold = f.read()
+            b64 = base64.b64encode(indhold).decode()
+            sti_i_repo = f"data/{filnavn}"
+
+            url = f"https://api.github.com/repos/{repo}/contents/{sti_i_repo}"
+            headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github.v3+json"}
+
+            r_get = requests.get(url, headers=headers, timeout=15)
+            sha = r_get.json().get("sha") if r_get.status_code == 200 else None
+
+            payload = {"message": f"Sync {filnavn} fra app", "content": b64, "branch": "main"}
+            if sha:
+                payload["sha"] = sha
+
+            r_put = requests.put(url, headers=headers, json=payload, timeout=15)
+            if r_put.status_code not in (200, 201):
+                return False, f"GitHub sync fejl for {filnavn}: {r_put.status_code} — {r_put.text[:200]}"
+        except Exception as e:
+            return False, f"GitHub sync fejl for {filnavn}: {e}"
+    return True, ""
+
+# Wrap engine's skrivefunktioner én gang, så ALLE køb/salg/portfolio-ændringer
+# automatisk synkroniseres til GitHub — uden at skulle huske det ved hvert
+# eneste knap-tryk i UI'en nedenfor.
+_orig_gem_portfolio   = engine.gem_portfolio
+_orig_registrer_koeb  = engine.registrer_koeb
+_orig_registrer_salg  = engine.registrer_salg
+
+def _gem_portfolio_med_sync(data):
+    _orig_gem_portfolio(data)
+    ok, fejl = sync_data_til_github()
+    if not ok:
+        st.toast(f"⚠️ Kunne ikke synkronisere til GitHub: {fejl}", icon="⚠️")
+
+def _registrer_koeb_med_sync(*args, **kwargs):
+    _orig_registrer_koeb(*args, **kwargs)
+    ok, fejl = sync_data_til_github()
+    if not ok:
+        st.toast(f"⚠️ Kunne ikke synkronisere til GitHub: {fejl}", icon="⚠️")
+
+def _registrer_salg_med_sync(*args, **kwargs):
+    _orig_registrer_salg(*args, **kwargs)
+    ok, fejl = sync_data_til_github()
+    if not ok:
+        st.toast(f"⚠️ Kunne ikke synkronisere til GitHub: {fejl}", icon="⚠️")
+
+engine.gem_portfolio  = _gem_portfolio_med_sync
+engine.registrer_koeb = _registrer_koeb_med_sync
+engine.registrer_salg = _registrer_salg_med_sync
 
 def makro_strip(m):
     if not m: return
@@ -587,7 +657,7 @@ with tab1:
                         holdings = pf.get("holdings",[])
                         if not any(h["ticker"]==r["ticker"] for h in holdings):
                             holdings.append(ny); pf["holdings"]=holdings
-                            gem_portfolio(pf)
+                            engine.gem_portfolio(pf)
                             st.success(f"{r['ticker']} tilføjet til Mine Handler!")
                             st.rerun()
                         else:
@@ -1004,6 +1074,8 @@ with tab4:
                 st.markdown('<p style="font-family:Space Mono,monospace;font-size:.65rem;color:#4ade80">✅ Hold position — fundamentals intakt</p>', unsafe_allow_html=True)
             elif anb == "SÆLG":
                 st.markdown('<p style="font-family:Space Mono,monospace;font-size:.65rem;color:#f87171">⚠️ Overvej at sælge — se analyse</p>', unsafe_allow_html=True)
+            for flag_tekst in r.get("flag", []):
+                st.markdown(f'<p style="font-family:Space Mono,monospace;font-size:.65rem;color:#facc15">🔔 {esc(flag_tekst)}</p>', unsafe_allow_html=True)
 
 
 # ════════════════════════════════════════════════════════════
