@@ -110,7 +110,7 @@ def indlaes_portfolio():
 def gem_portfolio(data):
     """Gem portfolio til JSON-fil — synkroniseres til GitHub."""
     with open(PORTFOLIO_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+        json.dump(data, f, ensure_ascii=False, indent=2, default=_json_default)
 
 # ════════════════════════════════════════════════════════════
 # AKTIVE HANDLER — køb/sælg via systemet
@@ -129,7 +129,7 @@ def registrer_koeb(ticker, navn, platform, antal, koebspris,
         "score_ved_koeb": score, "analyse_tekst": analyse, "status": "aktiv"
     })
     with open(AKTIVE_HANDLER_FILE, "w", encoding="utf-8") as f:
-        json.dump(handler, f, ensure_ascii=False, indent=2)
+        json.dump(handler, f, ensure_ascii=False, indent=2, default=_json_default)
 
     # Tilføj til portfolio holdings
     pf = indlaes_portfolio()
@@ -169,7 +169,7 @@ def registrer_salg(handler_id, salgspris, aarsag="Manuel"):
     h["salgs_aarsag"] = aarsag
 
     with open(AKTIVE_HANDLER_FILE, "w", encoding="utf-8") as f:
-        json.dump(handler, f, ensure_ascii=False, indent=2)
+        json.dump(handler, f, ensure_ascii=False, indent=2, default=_json_default)
 
     # Fjern fra portfolio holdings
     pf = indlaes_portfolio()
@@ -384,7 +384,7 @@ def hent_makro():
     }
 
     with open(MAKRO_FILE, "w", encoding="utf-8") as f:
-        json.dump(makro, f, ensure_ascii=False)
+        json.dump(makro, f, ensure_ascii=False, default=_json_default)
 
     log(f"Makro OK: VIX={vix:.1f} ({vix_status}), SP500={'Optrend' if sp_trend else 'Nedtrend'} ({sp_1m:+.1f}% 1M), Rente={rente_txt}, Justering={just:+.1f}")
     return makro
@@ -392,6 +392,26 @@ def hent_makro():
 def sp_status_str(m):
     return m.get("sp_status","") + f" ({m.get('sp_1m_afkast',0):+.1f}% 1M)"
 
+
+def _json_default(o):
+    """
+    Fallback for json.dump: konverterer numpy/pandas-skalarer (numpy.bool_,
+    numpy.integer, numpy.floating) til native Python-typer.
+
+    Uden denne kan et enkelt numpy.bool_ der sniger sig ind i et resultat
+    (fx fra en sammenligning mellem en Python-float og en ukonverteret
+    pandas/numpy-skalar) vælte HELE screener-kørslen efter flere minutters
+    arbejde, fordi json.dump fejler på selve skrive-trinnet til sidst.
+    """
+    if isinstance(o, (np.bool_, bool)):
+        return bool(o)
+    if isinstance(o, np.integer):
+        return int(o)
+    if isinstance(o, np.floating):
+        return float(o)
+    if isinstance(o, np.ndarray):
+        return o.tolist()
+    raise TypeError(f"Object of type {o.__class__.__name__} is not JSON serializable")
 
 def _safe_json_load(filepath):
     """Læs JSON-fil sikkert — returnerer None hvis filen er tom eller korrupt."""
@@ -486,9 +506,11 @@ def teknisk_screening(ticker):
         detaljer = {"pris": round(pris, 2)}
 
         # ── SMA trend ──────────────────────────────────────
-        sma20  = close.rolling(20).mean().iloc[-1]
-        sma50  = close.rolling(50).mean().iloc[-1]
-        sma200 = close.rolling(200).mean().iloc[-1]
+        # float() her er vigtigt: numpy-skalarer sammenlignet med Python-floats
+        # kan give numpy.bool_ i stedet for bool, som json.dump ikke kan serialisere.
+        sma20  = float(close.rolling(20).mean().iloc[-1])
+        sma50  = float(close.rolling(50).mean().iloc[-1])
+        sma200 = float(close.rolling(200).mean().iloc[-1])
         detaljer["sma20"]  = round(float(sma20), 2)
         detaljer["sma50"]  = round(float(sma50), 2)
         detaljer["sma200"] = round(float(sma200), 2)
@@ -593,7 +615,7 @@ def teknisk_screening(ticker):
             detaljer["pct_fra_52w_high"] = pct_fra_high
 
             # Volume confirmation: en breakout uden volumen over gennemsnit er svag
-            volumen_bekraeftet = vol_ratio >= 1.0
+            volumen_bekraeftet = bool(vol_ratio >= 1.0)
             if pct_fra_high > -3:
                 if volumen_bekraeftet:
                     score += 1.5
@@ -678,13 +700,13 @@ def teknisk_screening(ticker):
 
         # ── Hård trend-filter: undgå aktier i nedtrend ───────
         # (fx BMY -15% YTD der blev anbefalt flere dage i træk)
-        trend_ok = (pris > sma200) and (ytd_afkast is None or ytd_afkast > 0)
+        trend_ok = bool((pris > sma200) and (ytd_afkast is None or ytd_afkast > 0))
         detaljer["trend_ok"] = trend_ok
         if not trend_ok:
             grunde.append(f"NEDTREND — diskvalificeret (under SMA200 og/eller YTD {ytd_afkast}%)")
 
         # ── Momentum-krav: positivt 1M afkast OG positiv 5-dages trend ──
-        momentum_ok = (afkast_1m > 0) and (afkast_5d > 0)
+        momentum_ok = bool((afkast_1m > 0) and (afkast_5d > 0))
         detaljer["momentum_ok"] = momentum_ok
         if not momentum_ok:
             grunde.append(f"Svagt momentum — 1M {afkast_1m:+.1f}% / 5D {afkast_5d:+.1f}%")
@@ -1325,7 +1347,7 @@ def _gem_anbefaling_historik(ticker, analyse, screener_data):
             "score": score, "pris_30d": None, "afkast_30d": None
         })
         with open(BACKTEST_HISTORIK_FILE, "w", encoding="utf-8") as f:
-            json.dump(historik, f, ensure_ascii=False, indent=2)
+            json.dump(historik, f, ensure_ascii=False, indent=2, default=_json_default)
     except:
         pass
 
@@ -1454,7 +1476,7 @@ def backfill_ml_training_fra_git_historik():
 
     alle = eksisterende + nye
     with open(ML_TRAINING_FILE, "w", encoding="utf-8") as f:
-        json.dump(alle, f, ensure_ascii=False)
+        json.dump(alle, f, ensure_ascii=False, default=_json_default)
     log(f"Backfill: {len(nye)} historiske trænings-eksempler tilføjet fra {len(linjer)} git-snapshots "
         f"(i alt {len(alle)} eksempler i ML_TRAINING_FILE)")
     return len(nye)
@@ -1471,7 +1493,7 @@ def gem_ml_traeningseksempel(ticker, dato, pris, features):
         if len(data) > 100_000:
             data = data[-100_000:]
         with open(ML_TRAINING_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False)
+            json.dump(data, f, ensure_ascii=False, default=_json_default)
     except Exception as e:
         log(f"ML-log fejl for {ticker}: {e}")
 
@@ -1490,7 +1512,7 @@ def _opdater_ml_labels():
                 opdateret += 1
     if opdateret:
         with open(ML_TRAINING_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False)
+            json.dump(data, f, ensure_ascii=False, default=_json_default)
     log(f"ML-labels opdateret: {opdateret} nye eksempler fik outcome")
     return data
 
@@ -1750,7 +1772,7 @@ def koer_screener(hurtig=True):
             "dato": datetime.now().strftime("%Y-%m-%d %H:%M"),
             "makro": makro,
             "resultater": res
-        }, f, ensure_ascii=False)
+        }, f, ensure_ascii=False, default=_json_default)
 
     kandidater = [
         r for r in res
@@ -1943,7 +1965,7 @@ def koer_finbert_sentiment(tickers=None):
             except Exception as e:
                 log(f"  FinBERT fejl for {ticker}: {e}")
         with open(SENTIMENT_FILE, "w", encoding="utf-8") as f:
-            json.dump(res, f)
+            json.dump(res, f, default=_json_default)
         log(f"FinBERT færdig: {len(res)} aktier.")
         return res
     except Exception as e:
@@ -1979,7 +2001,7 @@ def koer_reanalyse_aktive():
     if not aktive:
         log("Reanalyse: ingen aktive positioner")
         with open(REANALYSE_FILE, "w", encoding="utf-8") as f:
-            json.dump({"dato": datetime.now().strftime("%Y-%m-%d %H:%M"), "resultater": []}, f, ensure_ascii=False)
+            json.dump({"dato": datetime.now().strftime("%Y-%m-%d %H:%M"), "resultater": []}, f, ensure_ascii=False, default=_json_default)
         return []
 
     res = []
@@ -2063,16 +2085,16 @@ def koer_reanalyse_aktive():
 
     if aendret:
         with open(AKTIVE_HANDLER_FILE, "w", encoding="utf-8") as f:
-            json.dump(handler, f, ensure_ascii=False, indent=2)
+            json.dump(handler, f, ensure_ascii=False, indent=2, default=_json_default)
 
     with open(REANALYSE_FILE, "w", encoding="utf-8") as f:
-        json.dump({"dato": datetime.now().strftime("%Y-%m-%d %H:%M"), "resultater": res}, f, ensure_ascii=False)
+        json.dump({"dato": datetime.now().strftime("%Y-%m-%d %H:%M"), "resultater": res}, f, ensure_ascii=False, default=_json_default)
 
     # Genbrug det eksisterende sælg-signal-tjek med de evt. opdaterede stops
     alerts = tjek_saelg_signaler()
     if alerts:
         with open(ALERT_FILE, "w", encoding="utf-8") as f:
-            json.dump(alerts, f, ensure_ascii=False)
+            json.dump(alerts, f, ensure_ascii=False, default=_json_default)
 
     log(f"Reanalyse færdig: {len(res)} aktive positioner gennemgået, {sum(1 for r in res if r['flag'])} med flag")
     return res
@@ -2096,7 +2118,7 @@ def koer_daily_brief(hurtig=True):
         "alle_screener": alle[:30],
     }
     with open(BRIEF_FILE, "w", encoding="utf-8") as f:
-        json.dump(brief, f, ensure_ascii=False)
+        json.dump(brief, f, ensure_ascii=False, default=_json_default)
 
     # Tjek alerts
     _tjek_og_send_alerts(dybe)
@@ -2122,7 +2144,7 @@ def _tjek_og_send_alerts(kandidater):
 
     if alerts:
         with open(ALERT_FILE, "w", encoding="utf-8") as f:
-            json.dump(alerts, f)
+            json.dump(alerts, f, default=_json_default)
         log(f"ALERT: {len(alerts)} nye stærke signaler!")
 
         # Forsøg Windows/Mac desktop notifikation
@@ -2163,7 +2185,7 @@ def koer_backtest():
                 log(f"  {item['ticker']}: {item['anbefaling']} → {afkast:+.1f}%")
 
     with open(BACKTEST_HISTORIK_FILE, "w", encoding="utf-8") as f:
-        json.dump(historik, f, ensure_ascii=False, indent=2)
+        json.dump(historik, f, ensure_ascii=False, indent=2, default=_json_default)
 
     alle = [x for x in historik if x.get("afkast_30d") is not None]
 
@@ -2193,7 +2215,7 @@ def koer_backtest():
         }
 
     with open(BACKTEST_FILE, "w", encoding="utf-8") as f:
-        json.dump(statistik, f, ensure_ascii=False)
+        json.dump(statistik, f, ensure_ascii=False, default=_json_default)
 
     log(f"Backtest færdig: {len(alle)} anbefalinger analyseret")
     return statistik
@@ -2252,7 +2274,7 @@ if __name__ == "__main__":
                 "alle_screener":  data["resultater"][:30],
             }
             with open(BRIEF_FILE, "w", encoding="utf-8") as f:
-                json.dump(brief, f, ensure_ascii=False)
+                json.dump(brief, f, ensure_ascii=False, default=_json_default)
             _tjek_og_send_alerts(dybe)
             log(f"Dyb analyse færdig: {len(dybe)} analyseret, gemt i brief-fil.")
         else:
