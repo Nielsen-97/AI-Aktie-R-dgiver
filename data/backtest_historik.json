@@ -1,0 +1,52 @@
+[
+  {
+    "id": 1,
+    "ticker": "JPM",
+    "dato": "2026-07-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 353.21,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 2,
+    "ticker": "BAC",
+    "dato": "2026-07-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 62.05,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 3,
+    "ticker": "LLY",
+    "dato": "2026-07-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 1196.03,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 4,
+    "ticker": "MRK",
+    "dato": "2026-07-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 131.07,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 5,
+    "ticker": "MMM",
+    "dato": "2026-07-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 172.62,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  }
+]
