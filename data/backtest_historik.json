@@ -48,5 +48,55 @@
     "score": 10.0,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 6,
+    "ticker": "SCHW",
+    "dato": "2026-07-28",
+    "anbefaling": "KØB",
+    "pris_koeb": 104.18,
+    "score": 9.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 7,
+    "ticker": "BMY",
+    "dato": "2026-07-28",
+    "anbefaling": "KØB",
+    "pris_koeb": 62.56,
+    "score": 8.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 8,
+    "ticker": "V",
+    "dato": "2026-07-28",
+    "anbefaling": "KØB",
+    "pris_koeb": 362.53,
+    "score": 8.6,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 9,
+    "ticker": "HON",
+    "dato": "2026-07-28",
+    "anbefaling": "KØB",
+    "pris_koeb": 245.75,
+    "score": 8.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 10,
+    "ticker": "RTX",
+    "dato": "2026-07-28",
+    "anbefaling": "KØB",
+    "pris_koeb": 218.42,
+    "score": 8.4,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
