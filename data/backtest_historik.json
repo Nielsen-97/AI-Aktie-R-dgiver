@@ -98,5 +98,55 @@
     "score": 8.4,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 11,
+    "ticker": "PYPL",
+    "dato": "2026-07-29",
+    "anbefaling": "KØB",
+    "pris_koeb": 58.32,
+    "score": 9.3,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 12,
+    "ticker": "MA",
+    "dato": "2026-07-29",
+    "anbefaling": "KØB",
+    "pris_koeb": 562.75,
+    "score": 8.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 13,
+    "ticker": "LMT",
+    "dato": "2026-07-29",
+    "anbefaling": "KØB",
+    "pris_koeb": 581.31,
+    "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 14,
+    "ticker": "AAPL",
+    "dato": "2026-07-29",
+    "anbefaling": "KØB",
+    "pris_koeb": 340.08,
+    "score": 8.1,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 15,
+    "ticker": "JNJ",
+    "dato": "2026-07-29",
+    "anbefaling": "KØB",
+    "pris_koeb": 266.73,
+    "score": 8.1,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
