@@ -198,5 +198,55 @@
     "score": 8.1,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 21,
+    "ticker": "PSX",
+    "dato": "2026-07-31",
+    "anbefaling": "KØB",
+    "pris_koeb": 210.6,
+    "score": 8.4,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 22,
+    "ticker": "SCHW",
+    "dato": "2026-07-31",
+    "anbefaling": "KØB",
+    "pris_koeb": 104.33,
+    "score": 8.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 23,
+    "ticker": "AMGN",
+    "dato": "2026-07-31",
+    "anbefaling": "KØB",
+    "pris_koeb": 387.64,
+    "score": 7.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 24,
+    "ticker": "XOM",
+    "dato": "2026-07-31",
+    "anbefaling": "KØB",
+    "pris_koeb": 156.97,
+    "score": 7.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 25,
+    "ticker": "V",
+    "dato": "2026-07-31",
+    "anbefaling": "KØB",
+    "pris_koeb": 366.27,
+    "score": 8.6,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
