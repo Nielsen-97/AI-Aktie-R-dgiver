@@ -74,16 +74,19 @@ jobs:
 
       - name: Genskab ML-trænings-data fra git-historik (idempotent, springer over kendte)
         env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_ACTIONS: "true"
         run: python engine.py backfill
 
       - name: Backtest tidligere anbefalinger (30-dages afkast)
         env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_ACTIONS: "true"
         run: python engine.py backtest
 
       - name: Gentræn ML-model (kører kun når der er nok data)
         env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_ACTIONS: "true"
         run: python engine.py train
 
