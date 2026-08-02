@@ -248,5 +248,55 @@
     "score": 8.6,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 26,
+    "ticker": "AMZN",
+    "dato": "2026-08-02",
+    "anbefaling": "KØB",
+    "pris_koeb": 271.58,
+    "score": 8.4,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 27,
+    "ticker": "CVX",
+    "dato": "2026-08-02",
+    "anbefaling": "KØB",
+    "pris_koeb": 196.83,
+    "score": 8.4,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 28,
+    "ticker": "MMM",
+    "dato": "2026-08-02",
+    "anbefaling": "KØB",
+    "pris_koeb": 176.28,
+    "score": 8.3,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 29,
+    "ticker": "MA",
+    "dato": "2026-08-02",
+    "anbefaling": "KØB",
+    "pris_koeb": 573.1,
+    "score": 8.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 30,
+    "ticker": "EOG",
+    "dato": "2026-08-02",
+    "anbefaling": "KØB",
+    "pris_koeb": 148.69,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
