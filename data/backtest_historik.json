@@ -298,5 +298,55 @@
     "score": 8.8,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 31,
+    "ticker": "BMY",
+    "dato": "2026-08-03",
+    "anbefaling": "KØB",
+    "pris_koeb": 65.31,
+    "score": 8.6,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 32,
+    "ticker": "RTX",
+    "dato": "2026-08-03",
+    "anbefaling": "KØB",
+    "pris_koeb": 215.22,
+    "score": 8.3,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 33,
+    "ticker": "SCHW",
+    "dato": "2026-08-03",
+    "anbefaling": "KØB",
+    "pris_koeb": 105.24,
+    "score": 8.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 34,
+    "ticker": "SBUX",
+    "dato": "2026-08-03",
+    "anbefaling": "KØB",
+    "pris_koeb": 105.25,
+    "score": 7.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 35,
+    "ticker": "PSX",
+    "dato": "2026-08-03",
+    "anbefaling": "HOLD",
+    "pris_koeb": 211.68,
+    "score": 8.6,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
