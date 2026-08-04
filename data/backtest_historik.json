@@ -348,5 +348,15 @@
     "score": 8.6,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 36,
+    "ticker": "PNDORA.CO",
+    "dato": "2026-08-04",
+    "anbefaling": "KØB",
+    "pris_koeb": 831.8,
+    "score": 7.0,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
