@@ -1247,7 +1247,7 @@ def analyser_med_llama(tekst, ticker, screener_data=None):
         if gange_anbefalet > 0:
             repetitions_sektion = (
                 f"\n\nADVARSEL — REPETITION: {ticker} er allerede anbefalt {gange_anbefalet} "
-                f"gang(e) de seneste 5 dage. Anbefal KUN igen hvis der er en KONKRET NY katalysator "
+                f"gang(e) de seneste {ANTI_REPETITION_DAGE} dage. Anbefal KUN igen hvis der er en KONKRET NY katalysator "
                 f"siden sidst (nyt regnskab, opdateret guidance, nyt teknisk signal). "
                 f"Er der ingen ny katalysator, sæt ANBEFALING til HOLD og sænk SCORE.\n"
             )
@@ -1516,12 +1516,25 @@ def _opdater_ml_labels():
     log(f"ML-labels opdateret: {opdateret} nye eksempler fik outcome")
     return data
 
+ML_MIN_EDGE_OVER_BASELINE = 0.03  # modellen skal slå "gæt altid flertals-klassen" med mindst 3 procentpoint
+
 def train_ml_model():
     """
     Træner en logistisk regressionsmodel på historiske feature/outcome-par.
     Kører kun hvis vi har nok labelled data (ML_MIN_TRAENINGS_EKSEMPLER) —
     ellers beholder vi den håndtunede formel, som er langt mere robust
     når data er sparsom.
+
+    Vigtigt: at have "nok" eksempler er IKKE det samme som at modellen
+    rent faktisk kan noget. I en periode hvor markedet bare stiger, kan en
+    model der lærer "gæt altid op" se ud til at ramme 60-65% uden reel
+    signal — det er blot markedets egen retning. Derfor valideres modellen
+    med et TIDS-ordnet cross-validation split (ikke tilfældigt k-fold, som
+    lækker information mellem nærliggende datoer og giver et kunstigt højt
+    tal) og sammenlignes mod en naiv baseline (gæt altid flertals-klassen).
+    Modellen gemmes og bruges KUN i live-scoring hvis den slår den baseline
+    med en reel margin — ellers logges det tydeligt, og heuristikken
+    fortsætter med at være den eneste kilde til scoren.
     """
     data = _opdater_ml_labels()
     labelled = [r for r in data if r.get("label") is not None]
@@ -1534,11 +1547,14 @@ def train_ml_model():
         from sklearn.linear_model import LogisticRegression
         from sklearn.preprocessing import StandardScaler
         from sklearn.pipeline import Pipeline
-        from sklearn.model_selection import cross_val_score
+        from sklearn.model_selection import TimeSeriesSplit, cross_val_score
     except ImportError:
         log("ML-træning sprunget over: scikit-learn ikke installeret")
         return None
 
+    # Sorter kronologisk FØR split, så vi altid tester på nyere data end vi
+    # trænede på — den eneste ærlige måde at validere en tidsserie-model på.
+    labelled = sorted(labelled, key=lambda r: r["dato"])
     X = np.array([[r["features"].get(k, 0.0) for k in ML_FEATURE_NAVNE] for r in labelled])
     y = np.array([r["label"] for r in labelled])
 
@@ -1547,11 +1563,18 @@ def train_ml_model():
         ("model", LogisticRegression(max_iter=1000, class_weight="balanced")),
     ])
 
+    baseline = float(max(y.mean(), 1 - y.mean()))
+    cv_accuracy = None
     try:
-        cv_scores = cross_val_score(pipeline, X, y, cv=min(5, len(labelled) // 10 or 2))
-        log(f"ML-model cross-val accuracy: {cv_scores.mean():.2f} (±{cv_scores.std():.2f}) på {len(labelled)} eksempler")
+        splits = min(5, max(2, len(labelled) // 200))
+        cv_scores = cross_val_score(pipeline, X, y, cv=TimeSeriesSplit(n_splits=splits))
+        cv_accuracy = float(cv_scores.mean())
+        log(f"ML-model tids-ordnet CV accuracy: {cv_accuracy:.3f} (±{cv_scores.std():.3f}) "
+            f"vs. baseline {baseline:.3f} på {len(labelled)} eksempler ({splits} splits)")
     except Exception as e:
-        log(f"ML cross-val fejl (træner alligevel): {e}")
+        log(f"ML cross-val fejl: {e} — modellen godkendes IKKE til live brug uden valideret skill")
+
+    godkendt = cv_accuracy is not None and cv_accuracy >= baseline + ML_MIN_EDGE_OVER_BASELINE
 
     pipeline.fit(X, y)
 
@@ -1559,12 +1582,25 @@ def train_ml_model():
     with open(ML_MODEL_FILE, "wb") as f:
         pickle.dump({"pipeline": pipeline, "feature_navne": ML_FEATURE_NAVNE,
                      "traenet_dato": datetime.now().strftime("%Y-%m-%d"),
-                     "antal_eksempler": len(labelled)}, f)
-    log(f"ML-model trænet og gemt: {len(labelled)} eksempler")
+                     "antal_eksempler": len(labelled),
+                     "cv_accuracy": cv_accuracy, "baseline": baseline,
+                     "godkendt": godkendt}, f)
+
+    if godkendt:
+        log(f"ML-model GODKENDT til live scoring: {cv_accuracy:.3f} slår baseline {baseline:.3f} "
+            f"med {(cv_accuracy - baseline)*100:.1f}pp")
+    else:
+        log(f"ML-model IKKE godkendt til live scoring endnu "
+            f"({'ingen reel edge over baseline' if cv_accuracy is not None else 'CV fejlede'}) "
+            f"— screeneren bruger fortsat kun den håndtunede formel")
     return pipeline
 
 def hent_ml_score(features):
-    """Returnerer ML-modellens sandsynlighed for positivt 30-dages afkast (0-1), eller None."""
+    """
+    Returnerer ML-modellens sandsynlighed for positivt 30-dages afkast (0-1),
+    eller None hvis ingen model findes ELLER modellen ikke er godkendt (se
+    train_ml_model) — kun godkendte modeller må påvirke live-scoren.
+    """
     if not _ML_MODEL_CACHE["forsoegt"]:
         _ML_MODEL_CACHE["forsoegt"] = True
         if os.path.exists(ML_MODEL_FILE):
@@ -1572,6 +1608,9 @@ def hent_ml_score(features):
                 import pickle
                 with open(ML_MODEL_FILE, "rb") as f:
                     pakke = pickle.load(f)
+                if not pakke.get("godkendt", False):
+                    log("ML-model findes men er ikke godkendt til live brug — springer over")
+                    pakke = None
                 _ML_MODEL_CACHE["model"] = pakke
             except Exception as e:
                 log(f"Kunne ikke indlæse ML-model: {e}")
@@ -1675,11 +1714,21 @@ def koer_screener(hurtig=True):
         "Forbrug":       ["AMZN","TSLA","HD","MCD","NKE","SBUX","TGT","COST","BKNG","CMG"],
         "Energi":        ["XOM","CVX","COP","EOG","SLB","PSX"],
         "Industri":      ["CAT","HON","RTX","LMT","UPS","DE","GE","MMM"],
-        "Kommunikation": ["NFLX","DIS","CMCSA","T","TMUS","GOOGL","META"],
+        "Kommunikation": ["NFLX","DIS","CMCSA","T","TMUS"],
         "Dansk":         ["NOVO-B.CO","MAERSK-B.CO","DSV.CO","PNDORA.CO","COLO-B.CO","TRYG.CO"],
     }
 
-    alle = [(s, t) for s in sektorer for t in univers.get(s, [])]
+    # Defensiv dedup: samme ticker skal ikke optage to pladser i kandidatlisten
+    # fordi den står i to sektor-lister (skete tidligere med GOOGL/META i både
+    # Tech og Kommunikation).
+    sete_tickers = set()
+    alle = []
+    for s in sektorer:
+        for t in univers.get(s, []):
+            if t in sete_tickers:
+                continue
+            sete_tickers.add(t)
+            alle.append((s, t))
     res  = []
 
     for i, (sektor, ticker) in enumerate(alle, 1):
@@ -1790,26 +1839,28 @@ def koer_screener(hurtig=True):
 # ════════════════════════════════════════════════════════════
 # DYB ANALYSE
 # ════════════════════════════════════════════════════════════
+ANTI_REPETITION_DAGE = 10  # var 5 — for kort til at føles som en reel pause mellem samme anbefaling
+
 def koer_dyb_analyse(kandidater, makro=None):
     if not kandidater:
         return []
 
-    # ── Anti-repetitions filter: hent hvad vi anbefalte de sidste 5 dage ──
+    # ── Anti-repetitions filter: hent hvad vi anbefalte de sidste N dage ──
     historik = _safe_json_load(BACKTEST_HISTORIK_FILE) or []
-    graense_dato = (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d")
+    graense_dato = (datetime.now() - timedelta(days=ANTI_REPETITION_DAGE)).strftime("%Y-%m-%d")
     nylige_anbefalinger = {
         h["ticker"] for h in historik
         if h.get("dato", "") >= graense_dato
         and h.get("anbefaling") in ["KØB", "STÆRKT", "KØB"]
     }
-    # Tæl hvor mange gange hver ticker er anbefalet de seneste 5 dage
+    # Tæl hvor mange gange hver ticker er anbefalet de seneste N dage
     antal_anbefalinger = {}
     for h in historik:
         if h.get("dato", "") >= graense_dato:
             t = h["ticker"]
             antal_anbefalinger[t] = antal_anbefalinger.get(t, 0) + 1
 
-    log(f"Anti-repetition: {len(nylige_anbefalinger)} aktier anbefalet de seneste 5 dage")
+    log(f"Anti-repetition: {len(nylige_anbefalinger)} aktier anbefalet de seneste {ANTI_REPETITION_DAGE} dage")
 
     # ── Relativ styrke: sorter inden for sektorer ──────────────────────
     sektorer_scores = {}
@@ -1886,7 +1937,7 @@ def koer_dyb_analyse(kandidater, makro=None):
     log(f"Conviction filter: {len(kandidater)} → {len(stærke)} → {len(kandidater_filtreret)} til dyb analyse")
     for r in kandidater_filtreret:
         gange = r.get("gange_anbefalet_5d", 0)
-        log(f"  {r['ticker']}: score {r['samlet']} → justeret {r.get('justeret_score', r['samlet'])} (anbefalet {gange}x de seneste 5d)")
+        log(f"  {r['ticker']}: score {r['samlet']} → justeret {r.get('justeret_score', r['samlet'])} (anbefalet {gange}x de seneste {ANTI_REPETITION_DAGE}d)")
 
     res = []
     for r in kandidater_filtreret:
@@ -1903,7 +1954,7 @@ def koer_dyb_analyse(kandidater, makro=None):
         komb = round((r["samlet"] * 0.40 + llama_s * 0.60), 1)
         if makro:
             komb = anvend_makro_justering(komb, makro)
-        # Straf aktier der er anbefalet mange gange de seneste 5 dage
+        # Straf aktier der er anbefalet mange gange de seneste N dage
         gange = r.get("gange_anbefalet_5d", 0)
         komb = round(max(1.0, komb - gange * 1.0), 1)
 
