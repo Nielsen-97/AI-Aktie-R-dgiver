@@ -408,5 +408,55 @@
     "score": 8.7,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 42,
+    "ticker": "MSFT",
+    "dato": "2026-08-06",
+    "anbefaling": "KØB",
+    "pris_koeb": 487.46,
+    "score": 8.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 43,
+    "ticker": "BAC",
+    "dato": "2026-08-06",
+    "anbefaling": "KØB",
+    "pris_koeb": 63.25,
+    "score": 8.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 44,
+    "ticker": "BLK",
+    "dato": "2026-08-06",
+    "anbefaling": "KØB",
+    "pris_koeb": 1133.58,
+    "score": 8.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 45,
+    "ticker": "TGT",
+    "dato": "2026-08-06",
+    "anbefaling": "KØB",
+    "pris_koeb": 147.7,
+    "score": 8.4,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 46,
+    "ticker": "HON",
+    "dato": "2026-08-06",
+    "anbefaling": "KØB",
+    "pris_koeb": 248.12,
+    "score": 9.0,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
