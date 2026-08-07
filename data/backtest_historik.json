@@ -508,5 +508,55 @@
     "score": 10.0,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 52,
+    "ticker": "SNOW",
+    "dato": "2026-08-07",
+    "anbefaling": "KØB",
+    "pris_koeb": 318.0,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 53,
+    "ticker": "MSFT",
+    "dato": "2026-08-07",
+    "anbefaling": "KØB",
+    "pris_koeb": 499.86,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 54,
+    "ticker": "JPM",
+    "dato": "2026-08-07",
+    "anbefaling": "KØB",
+    "pris_koeb": 356.3,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 55,
+    "ticker": "BAC",
+    "dato": "2026-08-07",
+    "anbefaling": "KØB",
+    "pris_koeb": 63.0,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 56,
+    "ticker": "MMM",
+    "dato": "2026-08-07",
+    "anbefaling": "KØB",
+    "pris_koeb": 180.71,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
