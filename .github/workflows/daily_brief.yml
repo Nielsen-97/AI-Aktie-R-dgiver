@@ -104,10 +104,13 @@ jobs:
       - name: Send Discord notifikation
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GITHUB_ACTIONS: "true"
         run: |
           python3 << 'PYTHON'
           import json, os, re, requests
+          import engine  # genbruger beregn_position: Kelly + cirkelbryder + bredde +
+                          # R:R-skalering + risikoloft + min.-position — ingen duplikeret logik her
 
           discord_url = os.getenv("DISCORD_WEBHOOK", "")
           if not discord_url:
@@ -129,14 +132,28 @@ jobs:
           sp1m  = float(makro.get("sp_1m_afkast", 0) or 0)
           dato  = brief.get("dato", "ukendt")
           kands = brief.get("top_kandidater", [])
-          cash_usd = float(portfolio.get("cash", {}).get("etoro_usd", 0))
-          cash_dkk = float(portfolio.get("cash", {}).get("nordnet_dkk", 0))
+          cash_usd    = float(portfolio.get("cash", {}).get("etoro_usd", 0))
+          cash_dkk    = float(portfolio.get("cash", {}).get("nordnet_dkk", 0))
+          cash_endavu = float(portfolio.get("cash", {}).get("endavu_dkk", 0))
+
+          circuit_faktor, circuit_besked = engine.hent_circuit_breaker_faktor()
+          bredde_faktor = float(makro.get("bredde_faktor", 1.0) or 1.0)
+          samlet_faktor = circuit_faktor * bredde_faktor
+          print(f"Cirkelbryder: {circuit_besked} | Bredde-faktor: {bredde_faktor}")
+
+          try:
+              total_portfolio_dkk = engine.beregn_total_portfolio_vaerdi_dkk(portfolio)
+          except Exception as e:
+              print(f"Kunne ikke beregne total portefølje-værdi: {e}")
+              total_portfolio_dkk = None
 
           farve = 0x4ade80 if "Optrend" in sp else 0xf87171
 
           # Makro linje
           vix_emoji = "🟢" if vix < 20 else "🟡" if vix < 27 else "🔴"
           makro_linje = f"{vix_emoji} VIX {vix:.0f} · SP500 {sp} {sp1m:+.1f}% · {dato}"
+          if samlet_faktor < 1.0:
+              makro_linje += f"\n🛡️ Positioner skåret til {samlet_faktor*100:.0f}% (cirkelbryder/bredde)"
 
           # Sælg-signaler FØRST
           sael_linjer = []
@@ -158,28 +175,37 @@ jobs:
           for r in unikke[:3]:
               analyse = r.get("analyse", "")
               ticker  = r["ticker"]
-              score   = r.get("kombineret", r.get("screener", 5))
+              score   = float(r.get("kombineret", r.get("screener", 5)) or 5)
 
               entry_m  = re.search(r"ENTRY PRIS[:\s]+\$?([\d,.]+)", analyse)
               stop_m   = re.search(r"STOP LOSS[:\s]+\$?([\d,.]+)", analyse)
               target_m = re.search(r"TARGET PRIS[:\s]+\$?([\d,.]+)", analyse)
 
-              entry  = entry_m.group(1)  if entry_m  else "?"
-              stop   = stop_m.group(1)   if stop_m   else "?"
-              target = target_m.group(1) if target_m else "?"
+              entry  = entry_m.group(1)  if entry_m  else None
+              stop   = stop_m.group(1)   if stop_m   else None
+              target = target_m.group(1) if target_m else None
+              entry_f  = float(entry.replace(",", ""))  if entry  else None
+              stop_f   = float(stop.replace(",", ""))   if stop   else None
+              target_f = float(target.replace(",", "")) if target else None
 
               er_dansk = ticker.endswith(".CO")
-              if er_dansk or cash_usd < 50:
-                  kelly  = 0.15 if float(score) >= 8.5 else 0.10 if float(score) >= 8 else 0.06
-                  beloeb = f"{round(cash_dkk * kelly):,.0f} DKK · Nordnet"
-              else:
-                  kelly  = 0.15 if float(score) >= 8.5 else 0.10 if float(score) >= 8 else 0.06
-                  beloeb = f"${round(cash_usd * kelly):.0f} · eToro"
+              pos = engine.beregn_position(
+                  score, cash_dkk, cash_usd, er_dansk=er_dansk, circuit_faktor=samlet_faktor,
+                  entry=entry_f, stop=stop_f, target=target_f, total_portfolio_dkk=total_portfolio_dkk,
+                  ticker=ticker, cash_endavu=cash_endavu,
+              )
+
+              if pos["for_lille"]:
+                  print(f"{ticker}: position for lille ({pos['beloeb']} {pos['valuta']}) — udeladt")
+                  continue
+
+              beloeb_txt = f"{pos['beloeb']:,.0f} {pos['valuta']} · {pos['platform']}" if pos["valuta"] == "DKK" \
+                  else f"${pos['beloeb']:.0f} · {pos['platform']}"
 
               koeb_linjer.append(
-                  f"🟢 **{ticker}** · Score {score}/10\n"
-                  f"   Køb: **${entry}** · Stop: ${stop} · Mål: ${target}\n"
-                  f"   Investér: {beloeb}"
+                  f"🟢 **{ticker}** · Score {score:.1f}/10\n"
+                  f"   Køb: **${entry or '?'}** · Stop: ${stop or '?'} · Mål: ${target or '?'}\n"
+                  f"   Investér: {beloeb_txt}"
               )
 
           # Byg beskeden
@@ -196,6 +222,7 @@ jobs:
               dele.append("\n\n".join(koeb_linjer))
           else:
               dele.append("**📭 Ingen signaler i dag**")
+              dele.append("_(enten ingen kandidater, eller positionerne var under minimumsgrænsen)_")
 
           payload = {
               "username": "AI Aktie Rådgiver",
