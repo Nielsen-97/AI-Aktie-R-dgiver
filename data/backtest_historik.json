@@ -658,5 +658,55 @@
     "score": 10.0,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 67,
+    "ticker": "TMO",
+    "dato": "2026-08-08",
+    "anbefaling": "KØB",
+    "pris_koeb": 594.0,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 68,
+    "ticker": "NVDA",
+    "dato": "2026-08-08",
+    "anbefaling": "KØB",
+    "pris_koeb": 223.96,
+    "score": 9.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 69,
+    "ticker": "CRWD",
+    "dato": "2026-08-08",
+    "anbefaling": "KØB",
+    "pris_koeb": 214.42,
+    "score": 9.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 70,
+    "ticker": "JNJ",
+    "dato": "2026-08-08",
+    "anbefaling": "KØB",
+    "pris_koeb": 259.24,
+    "score": 9.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 71,
+    "ticker": "SLB",
+    "dato": "2026-08-08",
+    "anbefaling": "KØB",
+    "pris_koeb": 50.53,
+    "score": 8.3,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
