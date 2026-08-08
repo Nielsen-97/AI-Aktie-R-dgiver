@@ -499,11 +499,31 @@ def teknisk_screening(ticker):
 
         close  = hist["Close"]
         volume = hist["Volume"]
+        high   = hist["High"]
+        low    = hist["Low"]
         pris   = float(close.iloc[-1])
 
         score  = 5.0
         grunde = []
         detaljer = {"pris": round(pris, 2)}
+
+        # ── ATR (Average True Range): volatilitets-baseret stop-loss-guide ──
+        # En fast 7-10% stop giver ikke mening på tværs af aktier med meget
+        # forskellig volatilitet — en rolig aktie som BAC og en volatil som
+        # BKNG bør ikke have samme stop-loss-afstand i procent.
+        try:
+            prev_close = close.shift(1)
+            true_range = pd.concat([
+                high - low,
+                (high - prev_close).abs(),
+                (low - prev_close).abs(),
+            ], axis=1).max(axis=1)
+            atr14 = float(true_range.rolling(14).mean().iloc[-1])
+            detaljer["atr14"] = round(atr14, 2)
+            detaljer["atr_pct"] = round(atr14 / pris * 100, 1) if pris > 0 else None
+        except Exception:
+            detaljer["atr14"] = None
+            detaljer["atr_pct"] = None
 
         # ── SMA trend ──────────────────────────────────────
         # float() her er vigtigt: numpy-skalarer sammenlignet med Python-floats
@@ -791,19 +811,41 @@ def fundamental_screening(ticker):
             elif eps_pct < -10:
                 score -= 1.0; grunde.append(f"EPS fald {eps_pct:.0f}%")
 
-        # ── Earnings Surprise ───────────────────────────────
+        # ── Earnings Surprise (forstærket hvis regnskabet er FRISKT) ──
+        # Et beat for 4 dage siden er et langt stærkere signal end et for
+        # 80 dage siden — markedet har ikke nødvendigvis prisfastsat det
+        # endnu. Et beat over 30 dage gammelt tæller stadig, men fuldt ud.
+        dage_siden_earnings = None
         try:
             earnings_hist = t.earnings_history
             if earnings_hist is not None and not earnings_hist.empty:
-                seneste = earnings_hist.sort_index(ascending=False).iloc[0]
+                earnings_hist_sorted = earnings_hist.sort_index(ascending=False)
+                seneste      = earnings_hist_sorted.iloc[0]
+                seneste_dato = earnings_hist_sorted.index[0]
                 eps_actual   = seneste.get("epsActual")
                 eps_estimate = seneste.get("epsEstimate")
+
+                try:
+                    rapport_ts = pd.Timestamp(seneste_dato)
+                    now_ts = pd.Timestamp.now(tz=rapport_ts.tz) if rapport_ts.tz is not None else pd.Timestamp.now()
+                    dage_siden_earnings = (now_ts - rapport_ts).days
+                except Exception:
+                    dage_siden_earnings = None
+
+                nyt_beat = dage_siden_earnings is not None and 0 <= dage_siden_earnings <= 30
+
                 if eps_actual and eps_estimate and eps_estimate != 0:
                     surprise_pct = (eps_actual - eps_estimate) / abs(eps_estimate) * 100
                     if surprise_pct > 10:
-                        score += 1.5; grunde.append(f"EPS surprise +{surprise_pct:.1f}%")
+                        bonus = 2.5 if nyt_beat else 1.5
+                        score += bonus
+                        grunde.append(f"EPS surprise +{surprise_pct:.1f}%" +
+                                      (f" — kun {dage_siden_earnings}d gammelt, stærkt signal" if nyt_beat else ""))
                     elif surprise_pct > 3:
-                        score += 0.5; grunde.append(f"EPS beat +{surprise_pct:.1f}%")
+                        bonus = 1.0 if nyt_beat else 0.5
+                        score += bonus
+                        grunde.append(f"EPS beat +{surprise_pct:.1f}%" +
+                                      (f" — kun {dage_siden_earnings}d gammelt" if nyt_beat else ""))
                     elif surprise_pct < -5:
                         score -= 1.0; grunde.append(f"EPS miss {surprise_pct:.1f}%")
                 else:
@@ -861,6 +903,36 @@ def fundamental_screening(ticker):
         if mkt_cap and mkt_cap < 1e9:
             score -= 0.5  # Lille selskab = ekstra risiko
 
+        # ── Analyst-konsensus: undgå aktier flertallet af analytikere ikke
+        # tror på, uanset hvor godt teknik/fundamentals ellers ser ud ──────
+        # Kun aktiveret med tilstrækkelig dækning (3+ analytikere) — thin
+        # coverage skal ikke straffe en aktie der bare ikke følges tæt.
+        analyst_bull_pct = None
+        analyst_total = 0
+        try:
+            recs = t.recommendations
+            if recs is not None and not recs.empty:
+                lr = recs.iloc[-1]
+                sb = int(lr.get("Strong Buy", 0)); b = int(lr.get("Buy", 0))
+                h  = int(lr.get("Hold", 0)); s = int(lr.get("Sell", 0)); ss = int(lr.get("Strong Sell", 0))
+                analyst_total = sb + b + h + s + ss
+                if analyst_total > 0:
+                    analyst_bull_pct = round((sb + b) / analyst_total * 100, 1)
+        except Exception:
+            pass
+
+        analyst_ok = True
+        if analyst_bull_pct is not None and analyst_total >= 3:
+            if analyst_bull_pct < 40:
+                analyst_ok = False
+                score -= 2.0
+                grunde.append(f"Analyst-konsensus svag ({analyst_bull_pct:.0f}% bull af {analyst_total}) — diskvalificeret")
+            elif analyst_bull_pct < 60:
+                score -= 0.5
+                grunde.append(f"Analyst-konsensus middelmådig ({analyst_bull_pct:.0f}% bull af {analyst_total})")
+            else:
+                grunde.append(f"Analyst-konsensus stærk ({analyst_bull_pct:.0f}% bull af {analyst_total})")
+
         score = round(max(1.0, min(10.0, score)), 1)
         return score, {
             "pe": pe, "forward_pe": forward_pe,
@@ -872,6 +944,10 @@ def fundamental_screening(ticker):
             "gross_margin": round(gross_margin * 100, 1) if gross_margin else None,
             "roe": round(roe * 100, 1) if roe else None,
             "mkt_cap_mia": round(mkt_cap / 1e9, 1) if mkt_cap else None,
+            "dage_siden_earnings": dage_siden_earnings,
+            "analyst_bull_pct": analyst_bull_pct,
+            "analyst_total": analyst_total,
+            "analyst_ok": analyst_ok,
             "grunde": grunde,
         }
 
@@ -1046,7 +1122,145 @@ def hent_circuit_breaker_faktor():
         return 0.50, f"Forsigtig: {hit_rate*100:.0f}% hit-rate, {gns:+.1f}% snit på seneste {len(seneste)} handler — positioner skåret til 50%"
     return 1.0, f"Normal: {hit_rate*100:.0f}% hit-rate på seneste {len(seneste)} handler"
 
-def beregn_position(score, cash_dkk, cash_usd, er_dansk=False, platform_pref=None, circuit_faktor=1.0):
+def hent_usd_dkk_kurs():
+    """Live USD/DKK-kurs. Bruges til at sammenligne risiko på tværs af valutaer."""
+    try:
+        h = yf.Ticker("DKK=X").history(period="5d")
+        if not h.empty:
+            return float(h["Close"].iloc[-1])
+    except Exception:
+        pass
+    return 6.9  # rimeligt fallback-estimat hvis live-kurs ikke kan hentes
+
+def beregn_total_portfolio_vaerdi_dkk(pf, usd_dkk=None):
+    """
+    Samlet porteføljeværdi i DKK: al cash + mark-to-market værdi af
+    holdings. Bruges til at sætte et hårdt loft for hvor meget der må
+    risikeres på én handel — position sizing baseret på cash alene ved ikke
+    hvor stor en andel af din reelle formue en handel udgør.
+    """
+    usd_dkk = usd_dkk or hent_usd_dkk_kurs()
+    cash = pf.get("cash", {})
+    total = (cash.get("nordnet_dkk", 0) or 0) + (cash.get("endavu_dkk", 0) or 0) \
+        + (cash.get("etoro_usd", 0) or 0) * usd_dkk
+
+    for h in pf.get("holdings", []):
+        try:
+            k = hent_kurs(h["ticker"])
+            if not k:
+                continue
+            vaerdi = (h.get("antal", 0) or 0) * k["pris"]
+            if h.get("platform") == "etoro":
+                vaerdi *= usd_dkk
+            total += vaerdi
+        except Exception:
+            continue
+    return round(total, 2)
+
+MIN_POSITION_DKK = 200
+MIN_POSITION_USD = 30
+MAKS_RISIKO_PCT_AF_KAPITAL = 0.02  # risiker aldrig mere end 2% af total kapital på én handel
+
+# ════════════════════════════════════════════════════════════
+# PLATFORMVALG — billigste platform for en given handel
+# ════════════════════════════════════════════════════════════
+ETORO_LARGE_CAP_GRAENSE_MIA = 10.0  # $10 mia+ = large cap i eToros gebyr-øjemed
+_market_cap_cache = {}
+
+def _hent_market_cap_mia(ticker):
+    """Henter market cap i milliarder USD, med simpel in-memory cache per kørsel."""
+    if ticker in _market_cap_cache:
+        return _market_cap_cache[ticker]
+    mkt_cap_mia = None
+    try:
+        info = yf.Ticker(ticker).info
+        mc = info.get("marketCap")
+        if mc:
+            mkt_cap_mia = mc / 1e9
+    except Exception:
+        pass
+    _market_cap_cache[ticker] = mkt_cap_mia
+    return mkt_cap_mia
+
+def vaelg_platform(ticker, beloeb_dkk, cash_dkk, cash_usd, cash_endavu):
+    """
+    Beregner den faktiske forventede omkostning (gebyr + evt. valutaveksling
+    + eToro-spread) for en given handel på hver platform, og anbefaler den
+    billigste platform hvor der reelt er nok cash til at gennemføre handlen.
+
+    Gebyrstruktur:
+    - Nordnet: max(29 DKK, 0.1% af beløb) + 0.4% valutaveksling hvis USD-aktie
+    - Endavu:  max(19 DKK, 0.05% af beløb) + 0.4% valutaveksling hvis USD-aktie
+    - eToro:   0.09% spread for large caps (≥10 mia. USD), 0.5% for small caps,
+               ingen valutaveksling (kun tilgængelig for US-aktier)
+
+    Danske aktier (.CO) kan kun handles på Nordnet eller Endavu.
+
+    Returnerer den billigste platform der har nok cash til beløbet. Hvis den
+    billigste platform ikke har nok cash, foreslås den næstbilligste med nok
+    cash i stedet. Hvis INGEN platform har nok cash, returneres den billigste
+    alligevel med "utilstraekkelig_cash": True, så den kaldende kode kan
+    beslutte at afvise handlen.
+    """
+    er_dansk = ticker.endswith(".CO")
+    usd_dkk = hent_usd_dkk_kurs()
+
+    omkostninger = {}
+
+    nordnet_gebyr     = max(29.0, 0.001 * beloeb_dkk)
+    nordnet_veksling  = 0.004 * beloeb_dkk if not er_dansk else 0.0
+    omkostninger["Nordnet"] = {
+        "omkostning_dkk": round(nordnet_gebyr + nordnet_veksling, 2),
+        "cash_dkk": cash_dkk,
+    }
+
+    endavu_gebyr     = max(19.0, 0.0005 * beloeb_dkk)
+    endavu_veksling  = 0.004 * beloeb_dkk if not er_dansk else 0.0
+    omkostninger["Endavu"] = {
+        "omkostning_dkk": round(endavu_gebyr + endavu_veksling, 2),
+        "cash_dkk": cash_endavu,
+    }
+
+    if not er_dansk:
+        mkt_cap_mia = _hent_market_cap_mia(ticker)
+        # Ukendt market cap → antag small-cap spread. Konservativt: undgår at
+        # undervurdere omkostningen og fejlagtigt anbefale eToro som billigst.
+        er_large_cap = mkt_cap_mia is not None and mkt_cap_mia >= ETORO_LARGE_CAP_GRAENSE_MIA
+        spread_pct = 0.0009 if er_large_cap else 0.005
+        omkostninger["eToro"] = {
+            "omkostning_dkk": round(beloeb_dkk * spread_pct, 2),
+            "cash_dkk": cash_usd * usd_dkk,
+            "mkt_cap_mia": mkt_cap_mia,
+        }
+
+    sorteret = sorted(omkostninger.items(), key=lambda kv: kv[1]["omkostning_dkk"])
+
+    valgt_platform, valgt_data = None, None
+    for platform, data in sorteret:
+        if data["cash_dkk"] >= beloeb_dkk:
+            valgt_platform, valgt_data = platform, data
+            break
+
+    utilstraekkelig_cash = valgt_platform is None
+    if utilstraekkelig_cash:
+        # Ingen platform har nok cash — vælg billigste alligevel og flag det,
+        # så den kaldende kode kan afvise eller foreslå en mindre position.
+        valgt_platform, valgt_data = sorteret[0]
+
+    return {
+        "platform": valgt_platform,
+        "omkostning_dkk": valgt_data["omkostning_dkk"],
+        "alle_omkostninger": {p: round(d["omkostning_dkk"], 2) for p, d in sorteret},
+        "utilstraekkelig_cash": utilstraekkelig_cash,
+        "begrundelse": (
+            f"{valgt_platform} billigst: {valgt_data['omkostning_dkk']:.2f} DKK i gebyr/spread"
+            + (" (INGEN platform har nok cash — vist alligevel)" if utilstraekkelig_cash else "")
+        ),
+    }
+
+def beregn_position(score, cash_dkk, cash_usd, er_dansk=False, platform_pref=None, circuit_faktor=1.0,
+                     entry=None, stop=None, target=None, total_portfolio_dkk=None, usd_dkk=None,
+                     cash_endavu=0.0, ticker=None):
     """
     Forbedret Kelly-lignende position sizing.
     Tre platforme: Nordnet (DKK), eToro (USD), Endavu (DKK).
@@ -1054,6 +1268,24 @@ def beregn_position(score, cash_dkk, cash_usd, er_dansk=False, platform_pref=Non
     Kelly-lofterne er bevidst holdt lave (max 10%) — et system uden lang
     dokumenteret track record bør aldrig satse store andele af kapitalen på
     én enkelt aktie, uanset hvor høj scoren ser ud.
+
+    Ekstra lag når entry/stop/target og total_portfolio_dkk er kendt:
+    - Risk/reward-skalering: bedre R:R-setups (3:1+) får en større position,
+      svage (under 1.5:1) en mindre — i dag var alle positioner ens uanset
+      hvor godt entry/stop/target-forholdet faktisk var.
+    - Hårdt risikoloft: uanset hvor høj conviction-scoren er, risikeres
+      aldrig mere end MAKS_RISIKO_PCT_AF_KAPITAL af din samlede kapital
+      (cash + holdings) på én handel.
+    - "for_lille"-flag: hvis den endelige position er under en
+      minimumsgrænse (transaktionsomkostninger gør den meningsløs), flages
+      det, så den kan udelades helt i stedet for at vise en $16-handel.
+
+    Platformvalg: hvis `ticker` er givet (og der ikke er en eksplicit
+    platform_pref), vælges platformen med vaelg_platform() ud fra den
+    faktiske forventede omkostning (gebyr + valutaveksling + eToro-spread)
+    på tværs af Nordnet/Endavu/eToro — ikke bare "dansk aktie → Nordnet,
+    ellers eToro hvis der er USD". Uden `ticker` bruges den gamle simple
+    logik (bagudkompatibelt for kald der endnu ikke er opdateret).
     """
     # Kelly fraktioner baseret på conviction — konservative lofter
     if score >= 9.0:
@@ -1071,24 +1303,67 @@ def beregn_position(score, cash_dkk, cash_usd, er_dansk=False, platform_pref=Non
 
     kelly *= circuit_faktor
     if circuit_faktor < 1.0:
-        begrundelse += f" (cirkelbryder × {circuit_faktor:.2f})"
+        begrundelse += f" (cirkelbryder/bredde × {circuit_faktor:.2f})"
 
-    if er_dansk or platform_pref == "nordnet":
-        beloeb = round(cash_dkk * kelly)
-        return {"beloeb": beloeb, "valuta": "DKK", "platform": "Nordnet", "begrundelse": begrundelse}
+    # ── Risk/reward-skalering (større position ved bedre R:R-setup) ──
+    if entry and stop and target and entry > stop:
+        risiko  = entry - stop
+        gevinst = target - entry
+        if risiko > 0:
+            rr = gevinst / risiko
+            if rr >= 3.0:
+                kelly *= 1.3
+                begrundelse += f" (R:R {rr:.1f}:1 — position øget)"
+            elif rr < 1.5:
+                kelly *= 0.6
+                begrundelse += f" (R:R {rr:.1f}:1 svag — position reduceret)"
 
-    if platform_pref == "endavu":
-        endavu_dkk = cash_dkk  # Endavu bruger DKK
-        beloeb = round(endavu_dkk * kelly)
-        return {"beloeb": beloeb, "valuta": "DKK", "platform": "Endavu", "begrundelse": begrundelse}
+    if platform_pref == "nordnet":
+        beloeb, valuta, platform = round(cash_dkk * kelly), "DKK", "Nordnet"
+    elif platform_pref == "endavu":
+        beloeb, valuta, platform = round(cash_endavu * kelly), "DKK", "Endavu"
+    elif ticker:
+        # Estimer et startbeløb ud fra den største tilgængelige pulje for at
+        # kunne sammenligne gebyrer på tværs af platforme, vælg den billigste
+        # platform MED nok cash, og beregn så det endelige beløb ud fra netop
+        # dén platforms egen kapital.
+        est_dkk = max(cash_dkk, cash_endavu, cash_usd * (usd_dkk or hent_usd_dkk_kurs())) * kelly
+        valg = vaelg_platform(ticker, max(est_dkk, 1.0), cash_dkk, cash_usd, cash_endavu)
+        platform = valg["platform"]
+        begrundelse += f" — {valg['begrundelse']}"
+        if valg["utilstraekkelig_cash"]:
+            begrundelse += " (ADVARSEL: ingen platform har nok cash til denne position)"
 
-    # Standard: eToro hvis der er USD, ellers Nordnet
-    if cash_usd >= 50:
-        return {"beloeb": round(cash_usd * kelly, 2), "valuta": "USD",
-                "platform": "eToro", "begrundelse": begrundelse}
+        if platform == "Nordnet":
+            beloeb, valuta = round(cash_dkk * kelly), "DKK"
+        elif platform == "Endavu":
+            beloeb, valuta = round(cash_endavu * kelly), "DKK"
+        else:
+            beloeb, valuta = round(cash_usd * kelly, 2), "USD"
+    elif er_dansk:
+        beloeb, valuta, platform = round(cash_dkk * kelly), "DKK", "Nordnet"
+    elif cash_usd >= 50:
+        beloeb, valuta, platform = round(cash_usd * kelly, 2), "USD", "eToro"
     else:
-        return {"beloeb": round(cash_dkk * kelly), "valuta": "DKK",
-                "platform": "Nordnet", "begrundelse": begrundelse}
+        beloeb, valuta, platform = round(cash_dkk * kelly), "DKK", "Nordnet"
+
+    # ── Hårdt risikoloft: aldrig mere end X% af total kapital på én handel ──
+    if entry and stop and entry > stop and total_portfolio_dkk:
+        risiko_pr_aktie = entry - stop
+        kurs = usd_dkk or hent_usd_dkk_kurs()
+        maks_risiko_dkk = total_portfolio_dkk * MAKS_RISIKO_PCT_AF_KAPITAL
+        antal_aktier = beloeb / entry if entry > 0 else 0
+        risiko_i_egen_valuta = antal_aktier * risiko_pr_aktie
+        risiko_dkk = risiko_i_egen_valuta if valuta == "DKK" else risiko_i_egen_valuta * kurs
+        if risiko_dkk > maks_risiko_dkk > 0:
+            skaler = maks_risiko_dkk / risiko_dkk
+            beloeb = round(beloeb * skaler, 2)
+            begrundelse += f" (skåret til {MAKS_RISIKO_PCT_AF_KAPITAL*100:.0f}% risikoloft af total kapital)"
+
+    for_lille = (valuta == "DKK" and beloeb < MIN_POSITION_DKK) or (valuta == "USD" and beloeb < MIN_POSITION_USD)
+
+    return {"beloeb": beloeb, "valuta": valuta, "platform": platform,
+            "begrundelse": begrundelse, "for_lille": for_lille}
 
 # ════════════════════════════════════════════════════════════
 # SAMLET SCORE
@@ -1224,6 +1499,7 @@ def analyser_med_llama(tekst, ticker, screener_data=None):
                     f"SMA20: {td.get('sma20','?')} | SMA50: {td.get('sma50','?')} | SMA200: {td.get('sma200','?')}\n"
                     f"52W High: {td.get('52w_high','?')} | Afstand fra high: {td.get('pct_fra_52w_high','?')}%\n"
                     f"Volume ratio: {td.get('vol_ratio','?')}x | 1M afkast: {td.get('afkast_1m','?')}%\n"
+                    f"ATR(14): ${td.get('atr14','?')} ({td.get('atr_pct','?')}% af prisen) — brug denne til STOP LOSS-afstand\n"
                     f"Tekniske grunde: {', '.join(td.get('grunde',[]))}\n"
                 )
             fund_d = screener_data.get("fund_data", {})
@@ -1248,7 +1524,7 @@ def analyser_med_llama(tekst, ticker, screener_data=None):
         if gange_anbefalet > 0:
             repetitions_sektion = (
                 f"\n\nADVARSEL — REPETITION: {ticker} er allerede anbefalt {gange_anbefalet} "
-                f"gang(e) de seneste 5 dage. Anbefal KUN igen hvis der er en KONKRET NY katalysator "
+                f"gang(e) de seneste {ANTI_REPETITION_DAGE} dage. Anbefal KUN igen hvis der er en KONKRET NY katalysator "
                 f"siden sidst (nyt regnskab, opdateret guidance, nyt teknisk signal). "
                 f"Er der ingen ny katalysator, sæt ANBEFALING til HOLD og sænk SCORE.\n"
             )
@@ -1296,7 +1572,10 @@ def analyser_med_llama(tekst, ticker, screener_data=None):
             "Markedet er uforudsigeligt. Brug 55-70% for normale tilfælde. "
             "Over 80% kun ved ekstraordinære setup. Aldrig 85% på alt.\n"
             "4. ENTRY PRIS = nuværende markedspris ±2%\n"
-            "5. STOP LOSS = 7-10% under entry (sæt det præcist ved teknisk støtte)\n"
+            "5. STOP LOSS = brug ATR(14) som volatilitets-guide, IKKE en fast procent: "
+            "sæt stop ca. 2×ATR under entry (justér til nærmeste tekniske støtte). "
+            "En rolig aktie med lav ATR% skal have et smallere stop end en volatil aktie med høj ATR% — "
+            "kopiér ikke bare 7-10% på alle aktier.\n"
             "6. TARGET PRIS = realistisk kursmål baseret på fundamental fair value\n"
             "7. Vær KRITISK — det er bedre at sige HOLD end at give falsk KØB-signal\n"
             "8. Skriv INTET andet end de 10 linjer i formatet\n"
@@ -1373,10 +1652,10 @@ _ML_MODEL_CACHE = {"model": None, "forsoegt": False}
 ML_FEATURE_NAVNE = [
     "fundamental", "teknisk", "sentiment",
     "pe", "forward_pe", "rev_growth", "eps_growth", "fcf_margin",
-    "debt_equity", "gross_margin", "roe", "surprise_pct",
-    "rsi", "macd", "bb_pct", "vol_ratio", "pct_fra_52w_high",
+    "debt_equity", "gross_margin", "roe", "surprise_pct", "dage_siden_earnings",
+    "rsi", "macd", "bb_pct", "vol_ratio", "pct_fra_52w_high", "atr_pct",
     "afkast_1m", "afkast_3m", "afkast_5d", "ytd_afkast", "rs_vs_sp500",
-    "vix", "sp_1m_afkast",
+    "analyst_bull_pct", "vix", "sp_1m_afkast", "bredde_pct",
 ]
 
 def _byg_ml_features(f_s, t_s, s_s, f_d, t_d, makro):
@@ -1404,18 +1683,22 @@ def _byg_ml_features(f_s, t_s, s_s, f_d, t_d, makro):
         "gross_margin":    g(f_d, "gross_margin"),
         "roe":             g(f_d, "roe"),
         "surprise_pct":    g(f_d, "surprise_pct"),
+        "dage_siden_earnings": g(f_d, "dage_siden_earnings", 999.0),
         "rsi":             g(t_d, "rsi", 50.0),
         "macd":            g(t_d, "macd"),
         "bb_pct":          g(t_d, "bb_pct", 0.5),
         "vol_ratio":       g(t_d, "vol_ratio", 1.0),
         "pct_fra_52w_high": g(t_d, "pct_fra_52w_high", -20.0),
+        "atr_pct":         g(t_d, "atr_pct"),
         "afkast_1m":       g(t_d, "afkast_1m"),
         "afkast_3m":       g(t_d, "afkast_3m"),
         "afkast_5d":       g(t_d, "afkast_5d"),
         "ytd_afkast":      g(t_d, "ytd_afkast"),
         "rs_vs_sp500":     g(t_d, "rs_vs_sp500"),
+        "analyst_bull_pct": g(f_d, "analyst_bull_pct", 50.0),
         "vix":             float((makro or {}).get("vix", 0) or 0),
         "sp_1m_afkast":    float((makro or {}).get("sp_1m_afkast", 0) or 0),
+        "bredde_pct":      float((makro or {}).get("bredde_pct", 50) or 50),
     }
 
 def backfill_ml_training_fra_git_historik():
@@ -1517,12 +1800,25 @@ def _opdater_ml_labels():
     log(f"ML-labels opdateret: {opdateret} nye eksempler fik outcome")
     return data
 
+ML_MIN_EDGE_OVER_BASELINE = 0.03  # modellen skal slå "gæt altid flertals-klassen" med mindst 3 procentpoint
+
 def train_ml_model():
     """
     Træner en logistisk regressionsmodel på historiske feature/outcome-par.
     Kører kun hvis vi har nok labelled data (ML_MIN_TRAENINGS_EKSEMPLER) —
     ellers beholder vi den håndtunede formel, som er langt mere robust
     når data er sparsom.
+
+    Vigtigt: at have "nok" eksempler er IKKE det samme som at modellen
+    rent faktisk kan noget. I en periode hvor markedet bare stiger, kan en
+    model der lærer "gæt altid op" se ud til at ramme 60-65% uden reel
+    signal — det er blot markedets egen retning. Derfor valideres modellen
+    med et TIDS-ordnet cross-validation split (ikke tilfældigt k-fold, som
+    lækker information mellem nærliggende datoer og giver et kunstigt højt
+    tal) og sammenlignes mod en naiv baseline (gæt altid flertals-klassen).
+    Modellen gemmes og bruges KUN i live-scoring hvis den slår den baseline
+    med en reel margin — ellers logges det tydeligt, og heuristikken
+    fortsætter med at være den eneste kilde til scoren.
     """
     data = _opdater_ml_labels()
     labelled = [r for r in data if r.get("label") is not None]
@@ -1535,11 +1831,14 @@ def train_ml_model():
         from sklearn.linear_model import LogisticRegression
         from sklearn.preprocessing import StandardScaler
         from sklearn.pipeline import Pipeline
-        from sklearn.model_selection import cross_val_score
+        from sklearn.model_selection import TimeSeriesSplit, cross_val_score
     except ImportError:
         log("ML-træning sprunget over: scikit-learn ikke installeret")
         return None
 
+    # Sorter kronologisk FØR split, så vi altid tester på nyere data end vi
+    # trænede på — den eneste ærlige måde at validere en tidsserie-model på.
+    labelled = sorted(labelled, key=lambda r: r["dato"])
     X = np.array([[r["features"].get(k, 0.0) for k in ML_FEATURE_NAVNE] for r in labelled])
     y = np.array([r["label"] for r in labelled])
 
@@ -1548,11 +1847,18 @@ def train_ml_model():
         ("model", LogisticRegression(max_iter=1000, class_weight="balanced")),
     ])
 
+    baseline = float(max(y.mean(), 1 - y.mean()))
+    cv_accuracy = None
     try:
-        cv_scores = cross_val_score(pipeline, X, y, cv=min(5, len(labelled) // 10 or 2))
-        log(f"ML-model cross-val accuracy: {cv_scores.mean():.2f} (±{cv_scores.std():.2f}) på {len(labelled)} eksempler")
+        splits = min(5, max(2, len(labelled) // 200))
+        cv_scores = cross_val_score(pipeline, X, y, cv=TimeSeriesSplit(n_splits=splits))
+        cv_accuracy = float(cv_scores.mean())
+        log(f"ML-model tids-ordnet CV accuracy: {cv_accuracy:.3f} (±{cv_scores.std():.3f}) "
+            f"vs. baseline {baseline:.3f} på {len(labelled)} eksempler ({splits} splits)")
     except Exception as e:
-        log(f"ML cross-val fejl (træner alligevel): {e}")
+        log(f"ML cross-val fejl: {e} — modellen godkendes IKKE til live brug uden valideret skill")
+
+    godkendt = cv_accuracy is not None and cv_accuracy >= baseline + ML_MIN_EDGE_OVER_BASELINE
 
     pipeline.fit(X, y)
 
@@ -1560,12 +1866,25 @@ def train_ml_model():
     with open(ML_MODEL_FILE, "wb") as f:
         pickle.dump({"pipeline": pipeline, "feature_navne": ML_FEATURE_NAVNE,
                      "traenet_dato": datetime.now().strftime("%Y-%m-%d"),
-                     "antal_eksempler": len(labelled)}, f)
-    log(f"ML-model trænet og gemt: {len(labelled)} eksempler")
+                     "antal_eksempler": len(labelled),
+                     "cv_accuracy": cv_accuracy, "baseline": baseline,
+                     "godkendt": godkendt}, f)
+
+    if godkendt:
+        log(f"ML-model GODKENDT til live scoring: {cv_accuracy:.3f} slår baseline {baseline:.3f} "
+            f"med {(cv_accuracy - baseline)*100:.1f}pp")
+    else:
+        log(f"ML-model IKKE godkendt til live scoring endnu "
+            f"({'ingen reel edge over baseline' if cv_accuracy is not None else 'CV fejlede'}) "
+            f"— screeneren bruger fortsat kun den håndtunede formel")
     return pipeline
 
 def hent_ml_score(features):
-    """Returnerer ML-modellens sandsynlighed for positivt 30-dages afkast (0-1), eller None."""
+    """
+    Returnerer ML-modellens sandsynlighed for positivt 30-dages afkast (0-1),
+    eller None hvis ingen model findes ELLER modellen ikke er godkendt (se
+    train_ml_model) — kun godkendte modeller må påvirke live-scoren.
+    """
     if not _ML_MODEL_CACHE["forsoegt"]:
         _ML_MODEL_CACHE["forsoegt"] = True
         if os.path.exists(ML_MODEL_FILE):
@@ -1573,6 +1892,9 @@ def hent_ml_score(features):
                 import pickle
                 with open(ML_MODEL_FILE, "rb") as f:
                     pakke = pickle.load(f)
+                if not pakke.get("godkendt", False):
+                    log("ML-model findes men er ikke godkendt til live brug — springer over")
+                    pakke = None
                 _ML_MODEL_CACHE["model"] = pakke
             except Exception as e:
                 log(f"Kunne ikke indlæse ML-model: {e}")
@@ -1654,8 +1976,9 @@ def hent_sektor_rotation():
 def koer_screener(hurtig=True):
     makro = hent_makro()
     pf = indlaes_portfolio()
-    cash_dkk = pf["cash"].get("nordnet_dkk", 0)
-    cash_usd = pf["cash"].get("etoro_usd", 0)
+    cash_dkk    = pf["cash"].get("nordnet_dkk", 0)
+    cash_usd    = pf["cash"].get("etoro_usd", 0)
+    cash_endavu = pf["cash"].get("endavu_dkk", 0)
 
     sektor_rot = hent_sektor_rotation()
     stop_loss_cooldown = hent_stop_loss_cooldown()
@@ -1676,11 +1999,21 @@ def koer_screener(hurtig=True):
         "Forbrug":       ["AMZN","TSLA","HD","MCD","NKE","SBUX","TGT","COST","BKNG","CMG"],
         "Energi":        ["XOM","CVX","COP","EOG","SLB","PSX"],
         "Industri":      ["CAT","HON","RTX","LMT","UPS","DE","GE","MMM"],
-        "Kommunikation": ["NFLX","DIS","CMCSA","T","TMUS","GOOGL","META"],
+        "Kommunikation": ["NFLX","DIS","CMCSA","T","TMUS"],
         "Dansk":         ["NOVO-B.CO","MAERSK-B.CO","DSV.CO","PNDORA.CO","COLO-B.CO","TRYG.CO"],
     }
 
-    alle = [(s, t) for s in sektorer for t in univers.get(s, [])]
+    # Defensiv dedup: samme ticker skal ikke optage to pladser i kandidatlisten
+    # fordi den står i to sektor-lister (skete tidligere med GOOGL/META i både
+    # Tech og Kommunikation).
+    sete_tickers = set()
+    alle = []
+    for s in sektorer:
+        for t in univers.get(s, []):
+            if t in sete_tickers:
+                continue
+            sete_tickers.add(t)
+            alle.append((s, t))
     res  = []
 
     for i, (sektor, ticker) in enumerate(alle, 1):
@@ -1718,6 +2051,16 @@ def koer_screener(hurtig=True):
             elif afkast_1m < -15:
                 samlet = max(1.0, samlet - 0.5)  # Dårlig momentum
 
+        # ── Hastigt-stigning straf: undgå at købe toppen af en momentum-bølge
+        # der ikke er underbygget af et nyligt regnskabsbeat ──────────────
+        dage_siden_earnings = (f_d.get("dage_siden_earnings") if isinstance(f_d, dict) else None)
+        nyt_beat = dage_siden_earnings is not None and 0 <= dage_siden_earnings <= 30
+        if afkast_1m > 25 and not nyt_beat:
+            samlet = round(max(1.0, samlet - 1.0), 1)
+            if isinstance(f_d, dict):
+                f_d.setdefault("grunde", []).append(
+                    f"Hurtig stigning +{afkast_1m:.0f}% 1M uden nyligt regnskabsbeat — mulig overophedet")
+
         # ── Sektor-rotation: bonus/straf ud fra hvor sektoren ligger ──
         samlet = round(max(1.0, min(10.0, samlet + sektor_rot.get("bonus", {}).get(sektor, 0.0))), 1)
 
@@ -1748,13 +2091,61 @@ def koer_screener(hurtig=True):
             "grunde":    (f_d.get("grunde", []) if isinstance(f_d, dict) else []) +
                          (t_d.get("grunde", []) if isinstance(t_d, dict) else []) +
                          (["Stop-loss cooldown (30 dage)"] if i_cooldown else []),
-            "position":  beregn_position(samlet, cash_dkk, cash_usd, ticker.endswith(".CO"), circuit_faktor=circuit_faktor),
             "stop_loss_cooldown": i_cooldown,
             "ml_score":  round(ml_prob, 2) if ml_prob is not None else None,
         })
         time.sleep(0.15)
 
     res.sort(key=lambda x: x["samlet"], reverse=True)
+
+    # ── Markedsbredde: % af det screenede univers over egen SMA50 ─────
+    # En billig proxy for "hvor mange S&P 500-aktier er over SMA50" uden at
+    # skulle hente 500 ekstra tickers — bruger data vi allerede har indsamlet.
+    # Svag bredde (under halvdelen af markedet i optrend) betyder man svømmer
+    # mod strømmen selv med en enkelt stærk aktie, så alle positioner skæres ned.
+    bredde_grundlag = [r for r in res if r["teknik_data"].get("pris") and r["teknik_data"].get("sma50")]
+    if bredde_grundlag:
+        over_sma50 = sum(1 for r in bredde_grundlag if r["teknik_data"]["pris"] > r["teknik_data"]["sma50"])
+        bredde_pct = round(over_sma50 / len(bredde_grundlag) * 100, 1)
+    else:
+        bredde_pct = None
+    bredde_faktor = 0.5 if (bredde_pct is not None and bredde_pct < 50) else 1.0
+    log(f"Markedsbredde: {bredde_pct}% af {len(bredde_grundlag)} screenede aktier over SMA50"
+        + (" — svag bredde, positioner skæres til 50%" if bredde_faktor < 1.0 else ""))
+
+    makro["bredde_pct"] = bredde_pct
+    makro["bredde_faktor"] = bredde_faktor
+    try:
+        with open(MAKRO_FILE, "w", encoding="utf-8") as f:
+            json.dump(makro, f, ensure_ascii=False, default=_json_default)
+    except Exception as e:
+        log(f"Kunne ikke opdatere makro-fil med breddedata: {e}")
+
+    # Bredde er først kendt EFTER hele universet er scoret, så dagens allerede
+    # loggede ML-features (som fik en neutral 50.0-standardværdi undervejs)
+    # patches med den rigtige værdi bagefter.
+    if bredde_pct is not None:
+        try:
+            ml_data = _safe_json_load(ML_TRAINING_FILE) or []
+            dato_str = datetime.now().strftime("%Y-%m-%d")
+            aendret = False
+            for row in ml_data:
+                if row.get("dato") == dato_str and isinstance(row.get("features"), dict):
+                    row["features"]["bredde_pct"] = bredde_pct
+                    aendret = True
+            if aendret:
+                with open(ML_TRAINING_FILE, "w", encoding="utf-8") as f:
+                    json.dump(ml_data, f, ensure_ascii=False, default=_json_default)
+        except Exception as e:
+            log(f"Kunne ikke patch bredde_pct ind i dagens ML-log: {e}")
+
+    # ── Positionsstørrelse: beregnes her, EFTER bredde er kendt, så cirkel-
+    # bryder og markedsbredde begge kan reducere positionerne ──────────────
+    samlet_risiko_faktor = circuit_faktor * bredde_faktor
+    for r in res:
+        r["position"] = beregn_position(r["samlet"], cash_dkk, cash_usd,
+                                         r["ticker"].endswith(".CO"), circuit_faktor=samlet_risiko_faktor,
+                                         ticker=r["ticker"], cash_endavu=cash_endavu)
 
     # ── RAG træning: gem historiske regnskaber for top kandidater ──
     log("RAG: Gemmer historik for top kandidater...")
@@ -1781,6 +2172,7 @@ def koer_screener(hurtig=True):
         and r["teknik_data"].get("trend_ok", True)
         and r["teknik_data"].get("momentum_ok", True)
         and r["teknik_data"].get("earnings_ok", True)
+        and r["fund_data"].get("analyst_ok", True)
         and not r.get("stop_loss_cooldown", False)
     ]
     frasorteret = len([r for r in res if r["samlet"] >= 6.5]) - len(kandidater)
@@ -1791,26 +2183,28 @@ def koer_screener(hurtig=True):
 # ════════════════════════════════════════════════════════════
 # DYB ANALYSE
 # ════════════════════════════════════════════════════════════
+ANTI_REPETITION_DAGE = 10  # var 5 — for kort til at føles som en reel pause mellem samme anbefaling
+
 def koer_dyb_analyse(kandidater, makro=None):
     if not kandidater:
         return []
 
-    # ── Anti-repetitions filter: hent hvad vi anbefalte de sidste 5 dage ──
+    # ── Anti-repetitions filter: hent hvad vi anbefalte de sidste N dage ──
     historik = _safe_json_load(BACKTEST_HISTORIK_FILE) or []
-    graense_dato = (datetime.now() - timedelta(days=5)).strftime("%Y-%m-%d")
+    graense_dato = (datetime.now() - timedelta(days=ANTI_REPETITION_DAGE)).strftime("%Y-%m-%d")
     nylige_anbefalinger = {
         h["ticker"] for h in historik
         if h.get("dato", "") >= graense_dato
         and h.get("anbefaling") in ["KØB", "STÆRKT", "KØB"]
     }
-    # Tæl hvor mange gange hver ticker er anbefalet de seneste 5 dage
+    # Tæl hvor mange gange hver ticker er anbefalet de seneste N dage
     antal_anbefalinger = {}
     for h in historik:
         if h.get("dato", "") >= graense_dato:
             t = h["ticker"]
             antal_anbefalinger[t] = antal_anbefalinger.get(t, 0) + 1
 
-    log(f"Anti-repetition: {len(nylige_anbefalinger)} aktier anbefalet de seneste 5 dage")
+    log(f"Anti-repetition: {len(nylige_anbefalinger)} aktier anbefalet de seneste {ANTI_REPETITION_DAGE} dage")
 
     # ── Relativ styrke: sorter inden for sektorer ──────────────────────
     sektorer_scores = {}
@@ -1840,11 +2234,14 @@ def koer_dyb_analyse(kandidater, makro=None):
         if f < 6.5 or t < 6.0 or r["samlet"] < 7.5:
             continue
 
-        # Hård trend-/momentum-/earnings-/cooldown-diskvalifikation (defensivt —
-        # filtreres normalt allerede fra i koer_screener, men tjekkes igen her)
+        # Hård trend-/momentum-/earnings-/analyst-/cooldown-diskvalifikation
+        # (defensivt — filtreres normalt allerede fra i koer_screener, men
+        # tjekkes igen her)
         td = r.get("teknik_data", {})
+        fd = r.get("fund_data", {})
         if (not td.get("trend_ok", True) or not td.get("momentum_ok", True)
-                or not td.get("earnings_ok", True) or r.get("stop_loss_cooldown", False)):
+                or not td.get("earnings_ok", True) or not fd.get("analyst_ok", True)
+                or r.get("stop_loss_cooldown", False)):
             continue
 
         # Strafafelt for aktier anbefalet mange gange
@@ -1887,7 +2284,7 @@ def koer_dyb_analyse(kandidater, makro=None):
     log(f"Conviction filter: {len(kandidater)} → {len(stærke)} → {len(kandidater_filtreret)} til dyb analyse")
     for r in kandidater_filtreret:
         gange = r.get("gange_anbefalet_5d", 0)
-        log(f"  {r['ticker']}: score {r['samlet']} → justeret {r.get('justeret_score', r['samlet'])} (anbefalet {gange}x de seneste 5d)")
+        log(f"  {r['ticker']}: score {r['samlet']} → justeret {r.get('justeret_score', r['samlet'])} (anbefalet {gange}x de seneste {ANTI_REPETITION_DAGE}d)")
 
     res = []
     for r in kandidater_filtreret:
@@ -1904,7 +2301,7 @@ def koer_dyb_analyse(kandidater, makro=None):
         komb = round((r["samlet"] * 0.40 + llama_s * 0.60), 1)
         if makro:
             komb = anvend_makro_justering(komb, makro)
-        # Straf aktier der er anbefalet mange gange de seneste 5 dage
+        # Straf aktier der er anbefalet mange gange de seneste N dage
         gange = r.get("gange_anbefalet_5d", 0)
         komb = round(max(1.0, komb - gange * 1.0), 1)
 
@@ -2263,6 +2660,7 @@ if __name__ == "__main__":
                 and r.get("teknik_data", {}).get("trend_ok", True)
                 and r.get("teknik_data", {}).get("momentum_ok", True)
                 and r.get("teknik_data", {}).get("earnings_ok", True)
+                and r.get("fund_data", {}).get("analyst_ok", True)
                 and not r.get("stop_loss_cooldown", False)
             ]
             log(f"Dyb analyse starter for {len(kands)} kandidater...")
