@@ -837,17 +837,19 @@ def fundamental_screening(ticker):
                 if eps_actual and eps_estimate and eps_estimate != 0:
                     surprise_pct = (eps_actual - eps_estimate) / abs(eps_estimate) * 100
                     if surprise_pct > 10:
-                        bonus = 2.5 if nyt_beat else 1.5
-                        score += bonus
-                        grunde.append(f"EPS surprise +{surprise_pct:.1f}%" +
-                                      (f" — kun {dage_siden_earnings}d gammelt, stærkt signal" if nyt_beat else ""))
+                        score += 1.5; grunde.append(f"EPS surprise +{surprise_pct:.1f}%")
                     elif surprise_pct > 3:
-                        bonus = 1.0 if nyt_beat else 0.5
-                        score += bonus
-                        grunde.append(f"EPS beat +{surprise_pct:.1f}%" +
-                                      (f" — kun {dage_siden_earnings}d gammelt" if nyt_beat else ""))
+                        score += 0.5; grunde.append(f"EPS beat +{surprise_pct:.1f}%")
                     elif surprise_pct < -5:
                         score -= 1.0; grunde.append(f"EPS miss {surprise_pct:.1f}%")
+
+                    # Frisk regnskabsbeat (≤30 dage) er en BONUS oveni, ikke et
+                    # krav — så systemet ikke går i stå uden for earnings-sæson.
+                    # 3-ugers blackout FØR regnskab (earnings_ok i teknisk_screening)
+                    # er stadig et hårdt filter, uændret.
+                    if nyt_beat and surprise_pct > 3:
+                        score += 1.0
+                        grunde.append(f"Frisk regnskabsbeat ({dage_siden_earnings}d siden) — +1.0 bonus")
                 else:
                     surprise_pct = None
             else:
@@ -2166,6 +2168,51 @@ def koer_screener(hurtig=True):
             "resultater": res
         }, f, ensure_ascii=False, default=_json_default)
 
+    # ── DEBUG (midlertidig): pr.-filter pass/fail-tælling ─────────────────
+    # Fjern denne blok igen når fejlfindingen er færdig.
+    log("=" * 60)
+    log(f"DEBUG: {len(res)} aktier screenet i alt")
+    score_ge_65 = [r for r in res if r["samlet"] >= 6.5]
+    log(f"DEBUG: {len(score_ge_65)} aktier med samlet score ≥6.5 (før nogen af de andre filtre)")
+
+    # NB: trend_ok/momentum_ok/earnings_ok/analyst_ok/stop_loss_cooldown er
+    # HÅRDE filtre — fejl her fjerner aktien fra kandidater. "Hurtig stigning"
+    # er derimod KUN en -1.0 score-straf, ikke et hårdt filter — en aktie kan
+    # sagtens stadig blive kandidat med den straf, hvis scoren stadig er ≥6.5.
+    filter_tael = {
+        "trend_ok (hårdt filter)":              sum(1 for r in res if r["teknik_data"].get("trend_ok", True)),
+        "momentum_ok (hårdt filter)":           sum(1 for r in res if r["teknik_data"].get("momentum_ok", True)),
+        "earnings_ok (hårdt filter)":           sum(1 for r in res if r["teknik_data"].get("earnings_ok", True)),
+        "analyst_ok (hårdt filter)":            sum(1 for r in res if r["fund_data"].get("analyst_ok", True)),
+        "ikke_stop_loss_cooldown (hårdt filter)": sum(1 for r in res if not r.get("stop_loss_cooldown", False)),
+        "ikke_hurtig_stigning (KUN score-straf, ikke hårdt filter)": sum(1 for r in res if not any(
+            g.startswith("Hurtig stigning") for g in r.get("grunde", []))),
+    }
+    log("DEBUG: Antal aktier der BESTÅR hvert enkelt filter (ud af alle screenede, uafhængigt af de andre):")
+    for navn, antal in filter_tael.items():
+        log(f"DEBUG:   {navn}: {antal}/{len(res)} bestået ({len(res)-antal} fejlede)")
+
+    log("DEBUG: Score + filter-status for hver screenet aktie (sorteret efter score):")
+    for r in res:
+        td, fd = r["teknik_data"], r["fund_data"]
+        haarde_flags = []
+        if not td.get("trend_ok", True):       haarde_flags.append("TREND")
+        if not td.get("momentum_ok", True):    haarde_flags.append("MOMENTUM")
+        if not td.get("earnings_ok", True):     haarde_flags.append("EARNINGS")
+        if not fd.get("analyst_ok", True):      haarde_flags.append("ANALYST")
+        if r.get("stop_loss_cooldown", False):  haarde_flags.append("COOLDOWN")
+        rapid_rise = any(g.startswith("Hurtig stigning") for g in r.get("grunde", []))
+
+        dele = []
+        if haarde_flags:
+            dele.append("HÅRDT FILTER FEJLEDE: " + ",".join(haarde_flags))
+        if rapid_rise:
+            dele.append("SCORE-STRAF: HURTIG_STIGNING (-1.0, ikke blokerende)")
+        status = " | ".join(dele) if dele else "OK — ingen filtre/straffe"
+        log(f"DEBUG:   {r['ticker']:12s} score={r['samlet']:.1f}  {status}")
+    log("=" * 60)
+    # ── SLUT DEBUG ──────────────────────────────────────────────────────
+
     kandidater = [
         r for r in res
         if r["samlet"] >= 6.5
@@ -2178,6 +2225,7 @@ def koer_screener(hurtig=True):
     frasorteret = len([r for r in res if r["samlet"] >= 6.5]) - len(kandidater)
     log(f"Screener færdig: {len(res)} aktier, {len(kandidater)} kandidater ≥6.5 "
         f"({frasorteret} frasorteret pga. nedtrend/svagt momentum/regnskab-snart/stop-loss-cooldown)")
+    log(f"DEBUG: {len(kandidater)} kandidater går videre til koer_dyb_analyse (conviction-filteret)")
     return res, kandidater
 
 # ════════════════════════════════════════════════════════════
@@ -2222,6 +2270,8 @@ def koer_dyb_analyse(kandidater, makro=None):
         return r["samlet"] - gns  # Positiv = stærkere end sektor
 
     # ── Conviction filter: strammere krav ──────────────────────────────
+    # DEBUG (midlertidig): tæl PRÆCIS hvor mange der falder fra og hvorfor.
+    debug_afvist = {"f<6.5": 0, "t<6.0": 0, "samlet<7.5": 0, "hard_diskvalifikation": 0}
     stærke = []
     for r in kandidater:
         f = r.get("fundamental", 0)
@@ -2231,7 +2281,17 @@ def koer_dyb_analyse(kandidater, makro=None):
         gange_anbefalet = antal_anbefalinger.get(ticker, 0)
 
         # Strammere krav end før
-        if f < 6.5 or t < 6.0 or r["samlet"] < 7.5:
+        if f < 6.5:
+            debug_afvist["f<6.5"] += 1
+            log(f"DEBUG: {ticker} afvist i conviction-filter: fundamental={f} < 6.5")
+            continue
+        if t < 6.0:
+            debug_afvist["t<6.0"] += 1
+            log(f"DEBUG: {ticker} afvist i conviction-filter: teknisk={t} < 6.0")
+            continue
+        if r["samlet"] < 7.5:
+            debug_afvist["samlet<7.5"] += 1
+            log(f"DEBUG: {ticker} afvist i conviction-filter: samlet={r['samlet']} < 7.5")
             continue
 
         # Hård trend-/momentum-/earnings-/analyst-/cooldown-diskvalifikation
@@ -2242,6 +2302,8 @@ def koer_dyb_analyse(kandidater, makro=None):
         if (not td.get("trend_ok", True) or not td.get("momentum_ok", True)
                 or not td.get("earnings_ok", True) or not fd.get("analyst_ok", True)
                 or r.get("stop_loss_cooldown", False)):
+            debug_afvist["hard_diskvalifikation"] += 1
+            log(f"DEBUG: {ticker} afvist i conviction-filter: hård diskvalifikation (burde ikke ske — filtreret i koer_screener allerede)")
             continue
 
         # Strafafelt for aktier anbefalet mange gange
@@ -2282,6 +2344,7 @@ def koer_dyb_analyse(kandidater, makro=None):
         log("Conviction fallback: bruger top 3 med lavest repetition")
 
     log(f"Conviction filter: {len(kandidater)} → {len(stærke)} → {len(kandidater_filtreret)} til dyb analyse")
+    log(f"DEBUG: Afvisningsårsager i conviction-filter (ud af {len(kandidater)} kandidater fra koer_screener): {debug_afvist}")
     for r in kandidater_filtreret:
         gange = r.get("gange_anbefalet_5d", 0)
         log(f"  {r['ticker']}: score {r['samlet']} → justeret {r.get('justeret_score', r['samlet'])} (anbefalet {gange}x de seneste {ANTI_REPETITION_DAGE}d)")
