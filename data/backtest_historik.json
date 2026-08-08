@@ -558,5 +558,55 @@
     "score": 10.0,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 57,
+    "ticker": "AMGN",
+    "dato": "2026-08-08",
+    "anbefaling": "KØB",
+    "pris_koeb": 410.95,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 58,
+    "ticker": "PFE",
+    "dato": "2026-08-08",
+    "anbefaling": "KØB",
+    "pris_koeb": 26.76,
+    "score": 8.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 59,
+    "ticker": "AMZN",
+    "dato": "2026-08-08",
+    "anbefaling": "KØB",
+    "pris_koeb": 274.48,
+    "score": 8.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 60,
+    "ticker": "BKNG",
+    "dato": "2026-08-08",
+    "anbefaling": "KØB",
+    "pris_koeb": 214.42,
+    "score": 8.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 61,
+    "ticker": "SCHW",
+    "dato": "2026-08-08",
+    "anbefaling": "KØB",
+    "pris_koeb": 107.6,
+    "score": 8.9,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
