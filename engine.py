@@ -692,8 +692,8 @@ def teknisk_screening(ticker):
 
         # ── Earnings-kalender: undgå at købe inden regnskab ─────
         # Professionel regel: undgå 3 uger FØR earnings (høj usikkerhed)
-        earnings_ok = True
         dage_til_earnings = None
+        dato_kendt = False
         try:
             edates = yft.get_earnings_dates(limit=8)
             if edates is not None and not edates.empty:
@@ -701,14 +701,48 @@ def teknisk_screening(ticker):
                 fremtidige = edates.index[edates.index >= now_ts]
                 if len(fremtidige) > 0:
                     dage_til_earnings = (fremtidige.min() - now_ts).days
-                    if dage_til_earnings <= 21:
-                        earnings_ok = False
+                    dato_kendt = True
         except Exception:
             pass
+
+        # get_earnings_dates() har ofte ingen data for ikke-amerikanske
+        # aktier (fx danske .CO-tickers — Yahoo Finances earnings-kalender
+        # har generelt tyndere dækning uden for USA). Prøv .calendar som
+        # sekundær kilde før vi giver op.
+        if not dato_kendt:
+            try:
+                cal = yft.calendar
+                raw_dato = None
+                if cal:
+                    ed = cal.get("Earnings Date") if hasattr(cal, "get") else None
+                    if isinstance(ed, (list, tuple)) and ed:
+                        raw_dato = ed[0]
+                if raw_dato:
+                    naeste_ts = pd.Timestamp(raw_dato)
+                    now_ts2 = pd.Timestamp.now(tz=naeste_ts.tz) if naeste_ts.tz is not None else pd.Timestamp.now()
+                    if naeste_ts >= now_ts2:
+                        dage_til_earnings = (naeste_ts - now_ts2).days
+                        dato_kendt = True
+            except Exception:
+                pass
+
+        if dato_kendt:
+            earnings_ok = dage_til_earnings > 21
+        else:
+            # Ingen af de to kilder kunne fastslå næste regnskabsdato.
+            # Fail-safe: antag IKKE at det er trygt at købe — det er sket at
+            # dette ramte en aktie der reelt rapporterede om få dage (fx
+            # PNDORA.CO), fordi manglende data tidligere blev tolket som "OK".
+            earnings_ok = False
+
         detaljer["dage_til_earnings"] = dage_til_earnings
+        detaljer["earnings_dato_kendt"] = dato_kendt
         detaljer["earnings_ok"] = earnings_ok
         if not earnings_ok:
-            grunde.append(f"Regnskab om {dage_til_earnings} dag(e) — undgå køb 3 uger før")
+            if dato_kendt:
+                grunde.append(f"Regnskab om {dage_til_earnings} dag(e) — undgå køb 3 uger før")
+            else:
+                grunde.append("Regnskabsdato ukendt (ingen data fra yfinance) — diskvalificeret for en sikkerheds skyld")
 
         # ── YTD afkast (år-til-dato) ─────────────────────────
         ytd_rows = close[close.index.year == datetime.now().year]
