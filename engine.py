@@ -1193,14 +1193,15 @@ def beregn_total_portfolio_vaerdi_dkk(pf, usd_dkk=None):
             continue
     return round(total, 2)
 
-MIN_POSITION_DKK = 200
-MIN_POSITION_USD = 30
+MIN_POSITION_DKK = 100
+MIN_POSITION_USD = 15
 MAKS_RISIKO_PCT_AF_KAPITAL = 0.02  # risiker aldrig mere end 2% af total kapital på én handel
 
 # ════════════════════════════════════════════════════════════
 # PLATFORMVALG — billigste platform for en given handel
 # ════════════════════════════════════════════════════════════
 ETORO_LARGE_CAP_GRAENSE_MIA = 10.0  # $10 mia+ = large cap i eToros gebyr-øjemed
+USD_DKK_APPROKS = 7.0  # fast tilnærmet kurs til platformvalg/positionsstørrelse (ikke porteføljeværdi)
 _market_cap_cache = {}
 
 def _hent_market_cap_mia(ticker):
@@ -1230,7 +1231,10 @@ def vaelg_platform(ticker, beloeb_dkk, cash_dkk, cash_usd, cash_endavu):
     - eToro:   0.09% spread for large caps (≥10 mia. USD), 0.5% for small caps,
                ingen valutaveksling (kun tilgængelig for US-aktier)
 
-    Danske aktier (.CO) kan kun handles på Nordnet eller Endavu.
+    US-aktier kan handles på alle tre platforme — hvis eToro ikke har nok
+    cash, falder valget automatisk tilbage til Nordnet eller Endavu i DKK
+    (konverteret med USD_DKK_APPROKS). Danske aktier (.CO) kan derimod KUN
+    handles på Nordnet eller Endavu.
 
     Returnerer den billigste platform der har nok cash til beløbet. Hvis den
     billigste platform ikke har nok cash, foreslås den næstbilligste med nok
@@ -1239,7 +1243,7 @@ def vaelg_platform(ticker, beloeb_dkk, cash_dkk, cash_usd, cash_endavu):
     beslutte at afvise handlen.
     """
     er_dansk = ticker.endswith(".CO")
-    usd_dkk = hent_usd_dkk_kurs()
+    usd_dkk = USD_DKK_APPROKS
 
     omkostninger = {}
 
@@ -1359,23 +1363,35 @@ def beregn_position(score, cash_dkk, cash_usd, er_dansk=False, platform_pref=Non
     elif platform_pref == "endavu":
         beloeb, valuta, platform = round(cash_endavu * kelly), "DKK", "Endavu"
     elif ticker:
-        # Estimer et startbeløb ud fra den største tilgængelige pulje for at
-        # kunne sammenligne gebyrer på tværs af platforme, vælg den billigste
-        # platform MED nok cash, og beregn så det endelige beløb ud fra netop
-        # dén platforms egen kapital.
-        est_dkk = max(cash_dkk, cash_endavu, cash_usd * (usd_dkk or hent_usd_dkk_kurs())) * kelly
+        # Estimer et målbeløb ud fra den STØRSTE relevante pulje (kun de
+        # puljer aktien reelt kan handles fra — eToro er ikke en mulighed for
+        # danske aktier, så dens saldo skal ikke kunstigt oppuste estimatet
+        # for dem), vælg den billigste platform MED nok cash til det beløb.
+        er_dansk_ticker = ticker.endswith(".CO")
+        relevante_puljer = [cash_dkk, cash_endavu]
+        if not er_dansk_ticker:
+            relevante_puljer.append(cash_usd * USD_DKK_APPROKS)
+        est_dkk = max(relevante_puljer) * kelly
+
         valg = vaelg_platform(ticker, max(est_dkk, 1.0), cash_dkk, cash_usd, cash_endavu)
         platform = valg["platform"]
         begrundelse += f" — {valg['begrundelse']}"
         if valg["utilstraekkelig_cash"]:
             begrundelse += " (ADVARSEL: ingen platform har nok cash til denne position)"
 
+        # VIGTIGT: brug est_dkk (det beløb vaelg_platform netop har bekræftet
+        # er dækket af den valgte platforms cash) som det faktiske beløb —
+        # IKKE cash_for_den_valgte_platform * kelly igen. Ellers ender en
+        # handel der blev valgt til eToro fordi eToro lige akkurat kunne
+        # dække et Nordnet-stort estimat, med at blive prissat ud fra eToros
+        # egen (meget mindre) saldo i stedet, og skrumpe til noget ubetydeligt.
         if platform == "Nordnet":
-            beloeb, valuta = round(cash_dkk * kelly), "DKK"
+            beloeb, valuta = round(min(est_dkk, cash_dkk)), "DKK"
         elif platform == "Endavu":
-            beloeb, valuta = round(cash_endavu * kelly), "DKK"
+            beloeb, valuta = round(min(est_dkk, cash_endavu)), "DKK"
         else:
-            beloeb, valuta = round(cash_usd * kelly, 2), "USD"
+            est_usd = est_dkk / USD_DKK_APPROKS
+            beloeb, valuta = round(min(est_usd, cash_usd), 2), "USD"
     elif er_dansk:
         beloeb, valuta, platform = round(cash_dkk * kelly), "DKK", "Nordnet"
     elif cash_usd >= 50:
@@ -2243,7 +2259,20 @@ def koer_screener(hurtig=True):
         if rapid_rise:
             dele.append("SCORE-STRAF: HURTIG_STIGNING (-1.0, ikke blokerende)")
         status = " | ".join(dele) if dele else "OK — ingen filtre/straffe"
-        log(f"DEBUG:   {r['ticker']:12s} score={r['samlet']:.1f}  {status}")
+        dato_info = f"dato_kendt={td.get('earnings_dato_kendt')} dage_til={td.get('dage_til_earnings')}"
+        log(f"DEBUG:   {r['ticker']:12s} score={r['samlet']:.1f}  {dato_info}  {status}")
+
+    # DEBUG: dedikeret opsummering for danske tickers — svarer direkte på om
+    # earnings-dato nogensinde kan fastslås for .CO-aktier.
+    danske = [r for r in res if r["ticker"].endswith(".CO")]
+    if danske:
+        log("DEBUG: --- DANSK-SEKTOR: kendes regnskabsdatoen nogensinde? ---")
+        for r in danske:
+            td = r["teknik_data"]
+            log(f"DEBUG:   {r['ticker']}: dato_kendt={td.get('earnings_dato_kendt')} "
+                f"dage_til_earnings={td.get('dage_til_earnings')} earnings_ok={td.get('earnings_ok')}")
+        antal_kendt = sum(1 for r in danske if r["teknik_data"].get("earnings_dato_kendt"))
+        log(f"DEBUG: KONKLUSION: {antal_kendt}/{len(danske)} danske aktier havde en kendt regnskabsdato i dag")
     log("=" * 60)
     # ── SLUT DEBUG ──────────────────────────────────────────────────────
 
@@ -2266,6 +2295,12 @@ def koer_screener(hurtig=True):
 # DYB ANALYSE
 # ════════════════════════════════════════════════════════════
 ANTI_REPETITION_DAGE = 10  # var 5 — for kort til at føles som en reel pause mellem samme anbefaling
+# Var 1.0/gang uden loft — for hårdt: en aktie med screener-score 10.0 blev
+# slået fra 9.1 til 7.1 kombineret efter blot 2 tidligere anbefalinger.
+# 0.5/gang med loft på 1.5 betyder en ægte stjerne-aktie kan overleve at
+# blive anbefalt flere gange i træk, uden at straffen bliver uendelig.
+ANTI_REPETITION_STRAF_PR_GANG = 0.5
+ANTI_REPETITION_STRAF_MAKS    = 1.5
 
 def koer_dyb_analyse(kandidater, makro=None):
     if not kandidater:
@@ -2340,8 +2375,8 @@ def koer_dyb_analyse(kandidater, makro=None):
             log(f"DEBUG: {ticker} afvist i conviction-filter: hård diskvalifikation (burde ikke ske — filtreret i koer_screener allerede)")
             continue
 
-        # Strafafelt for aktier anbefalet mange gange
-        repetitions_straf = gange_anbefalet * 1.0
+        # Strafafelt for aktier anbefalet mange gange (loftet, se ovenfor)
+        repetitions_straf = min(gange_anbefalet * ANTI_REPETITION_STRAF_PR_GANG, ANTI_REPETITION_STRAF_MAKS)
         justeret_score = r["samlet"] - repetitions_straf
 
         # Kræv minimum relativ styrke i sektoren
@@ -2398,9 +2433,10 @@ def koer_dyb_analyse(kandidater, makro=None):
         komb = round((r["samlet"] * 0.40 + llama_s * 0.60), 1)
         if makro:
             komb = anvend_makro_justering(komb, makro)
-        # Straf aktier der er anbefalet mange gange de seneste N dage
+        # Straf aktier der er anbefalet mange gange de seneste N dage (loftet)
         gange = r.get("gange_anbefalet_5d", 0)
-        komb = round(max(1.0, komb - gange * 1.0), 1)
+        rep_straf = min(gange * ANTI_REPETITION_STRAF_PR_GANG, ANTI_REPETITION_STRAF_MAKS)
+        komb = round(max(1.0, komb - rep_straf), 1)
 
         log(f"  {r['ticker']}: screener={r['samlet']} Groq={llama_s} kombineret={komb} (anbefalet {gange}x)")
         res.append({
