@@ -808,5 +808,55 @@
     "score": 10.0,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 82,
+    "ticker": "BLK",
+    "dato": "2026-08-09",
+    "anbefaling": "KØB",
+    "pris_koeb": 1136.39,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 83,
+    "ticker": "TMO",
+    "dato": "2026-08-09",
+    "anbefaling": "KØB",
+    "pris_koeb": 594.0,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 84,
+    "ticker": "HON",
+    "dato": "2026-08-09",
+    "anbefaling": "KØB",
+    "pris_koeb": 246.21,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 85,
+    "ticker": "RTX",
+    "dato": "2026-08-09",
+    "anbefaling": "HOLD",
+    "pris_koeb": 223.03,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 86,
+    "ticker": "JPM",
+    "dato": "2026-08-09",
+    "anbefaling": "KØB",
+    "pris_koeb": 357.52,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
