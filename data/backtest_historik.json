@@ -758,5 +758,55 @@
     "score": 8.5,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 77,
+    "ticker": "JNJ",
+    "dato": "2026-08-09",
+    "anbefaling": "KØB",
+    "pris_koeb": 259.24,
+    "score": 9.3,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 78,
+    "ticker": "JPM",
+    "dato": "2026-08-09",
+    "anbefaling": "KØB",
+    "pris_koeb": 357.52,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 79,
+    "ticker": "BAC",
+    "dato": "2026-08-09",
+    "anbefaling": "KØB",
+    "pris_koeb": 63.17,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 80,
+    "ticker": "AMGN",
+    "dato": "2026-08-09",
+    "anbefaling": "KØB",
+    "pris_koeb": 410.95,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 81,
+    "ticker": "BKNG",
+    "dato": "2026-08-09",
+    "anbefaling": "HOLD",
+    "pris_koeb": 214.42,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
