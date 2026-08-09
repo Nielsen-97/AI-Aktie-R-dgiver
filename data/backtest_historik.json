@@ -708,5 +708,55 @@
     "score": 8.3,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 72,
+    "ticker": "LMT",
+    "dato": "2026-08-09",
+    "anbefaling": "KØB",
+    "pris_koeb": 587.95,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 73,
+    "ticker": "PNDORA.CO",
+    "dato": "2026-08-09",
+    "anbefaling": "KØB",
+    "pris_koeb": 796.8,
+    "score": 9.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 74,
+    "ticker": "SNOW",
+    "dato": "2026-08-09",
+    "anbefaling": "KØB",
+    "pris_koeb": 330.49,
+    "score": 9.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 75,
+    "ticker": "REGN",
+    "dato": "2026-08-09",
+    "anbefaling": "KØB",
+    "pris_koeb": 784.36,
+    "score": 9.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 76,
+    "ticker": "PLTR",
+    "dato": "2026-08-09",
+    "anbefaling": "KØB",
+    "pris_koeb": 172.01,
+    "score": 8.5,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
