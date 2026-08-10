@@ -858,5 +858,55 @@
     "score": 10.0,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 87,
+    "ticker": "BLK",
+    "dato": "2026-08-10",
+    "anbefaling": "KØB",
+    "pris_koeb": 1136.39,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 88,
+    "ticker": "LMT",
+    "dato": "2026-08-10",
+    "anbefaling": "KØB",
+    "pris_koeb": 587.95,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 89,
+    "ticker": "GE",
+    "dato": "2026-08-10",
+    "anbefaling": "KØB",
+    "pris_koeb": 370.08,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 90,
+    "ticker": "JPM",
+    "dato": "2026-08-10",
+    "anbefaling": "KØB",
+    "pris_koeb": 357.52,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 91,
+    "ticker": "AMGN",
+    "dato": "2026-08-10",
+    "anbefaling": "KØB",
+    "pris_koeb": 410.95,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
