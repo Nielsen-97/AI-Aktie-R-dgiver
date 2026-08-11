@@ -122,7 +122,85 @@ def trigger_github_scanning(scanning_type="komplet"):
         return True, ""
     return False, f"GitHub API fejl {r.status_code}: {r.text[:200]}"
 
-def sync_data_til_github():
+def _flet_aktive_handler(lokal_liste, remote_liste):
+    """
+    Fletter aktive_handler.json ved konflikt. GitHub Actions' daglige
+    re-analyse (koer_reanalyse_aktive) hæver trailing stop-loss på eksisterende
+    handler — den ændring må ALDRIG tabes bare fordi appen skrev samtidig.
+    Omvendt må en lokal handling (nyt køb, eller et salg der sætter
+    status="solgt") heller ikke tabes.
+
+    Strategi pr. id: brug den lokale record som udgangspunkt (den
+    repræsenterer brugerens seneste direkte handling), men:
+    - behold den HØJESTE stop_loss af de to (en trailing stop må aldrig gå
+      baglæns, uanset hvilken side der er "nyest")
+    - hvis EN af siderne markerer status="solgt", vinder det altid — et salg
+      må aldrig utilsigtet fortrydes af en flet
+    Records der kun findes på én side (nyt køb lokalt, eller en handel
+    fjernsiden har som appen endnu ikke kender) bevares begge.
+    """
+    remote_by_id = {h.get("id"): h for h in (remote_liste or []) if h.get("id") is not None}
+    lokal_by_id  = {h.get("id"): h for h in (lokal_liste or []) if h.get("id") is not None}
+
+    flettet = []
+    for id_, lokal_h in lokal_by_id.items():
+        remote_h = remote_by_id.get(id_)
+        if remote_h is None:
+            flettet.append(lokal_h)
+            continue
+        h = dict(lokal_h)
+        try:
+            if remote_h.get("stop_loss") and lokal_h.get("stop_loss"):
+                h["stop_loss"] = max(float(remote_h["stop_loss"]), float(lokal_h["stop_loss"]))
+            elif remote_h.get("stop_loss") and not lokal_h.get("stop_loss"):
+                h["stop_loss"] = remote_h["stop_loss"]
+        except (TypeError, ValueError):
+            pass
+        if remote_h.get("status") == "solgt":
+            h["status"] = "solgt"
+            for felt in ("salgspris", "afkast_pct", "dato_solgt", "salgs_aarsag", "analyse_tekst"):
+                if felt in remote_h:
+                    h[felt] = remote_h[felt]
+        flettet.append(h)
+
+    # Records der kun findes fjernsiden (fx skrevet af en anden proces/session)
+    for id_, remote_h in remote_by_id.items():
+        if id_ not in lokal_by_id:
+            flettet.append(remote_h)
+
+    flettet.sort(key=lambda h: h.get("id", 0))
+    return flettet
+
+def _flet_portfolio(lokal, remote):
+    """
+    Fletter portfolio.json ved konflikt. Cash og holdings-ændringer kommer
+    altid fra appen selv (ingen automatisk proces skriver til denne fil), så
+    lokal vinder ved uenighed — men elementer der kun findes fjernsiden
+    bevares i stedet for at blive overskrevet væk.
+    """
+    if not remote:
+        return lokal
+    flettet = dict(remote)
+    flettet["cash"] = {**remote.get("cash", {}), **lokal.get("cash", {})}
+
+    for felt in ("holdings", "watchlist"):
+        remote_liste = remote.get(felt, []) or []
+        lokal_liste  = lokal.get(felt, []) or []
+        if felt == "watchlist":
+            flettet[felt] = sorted(set(lokal_liste) | set(remote_liste))
+        else:
+            nøgle = lambda h: (h.get("ticker"), h.get("platform"))
+            remote_by_key = {nøgle(h): h for h in remote_liste}
+            remote_by_key.update({nøgle(h): h for h in lokal_liste})
+            flettet[felt] = list(remote_by_key.values())
+    return flettet
+
+_FLET_FUNKTIONER = {
+    "portfolio.json": _flet_portfolio,
+    "aktive_handler.json": _flet_aktive_handler,
+}
+
+def sync_data_til_github(maks_forsoeg=3):
     """
     Commit portfolio.json og aktive_handler.json til GitHub efter hvert køb/salg.
 
@@ -132,35 +210,79 @@ def sync_data_til_github():
     den daglige re-analyse af aktive positioner ville køre på tom/forældet
     data. Kaldes efter enhver handling der ændrer portfolio eller aktive
     handler.
+
+    Optimistisk locking: GitHub Actions' daglige re-analyse skriver også til
+    aktive_handler.json (hæver trailing stop-loss), så et samtidigt skriv
+    herfra kan ramme et 409 Conflict, fordi den sha vi hentede er blevet
+    forældet. Ved 409: hent den friskeste version + sha, flet vores
+    ændringer ind i den (i stedet for blindt at overskrive), og prøv igen.
     """
     token = st.secrets.get("GITHUB_TOKEN", "")
     repo  = st.secrets.get("GITHUB_REPO", "Nielsen-97/AI-Aktie-R-dgiver")
     if not token:
         return False, "GITHUB_TOKEN mangler i Streamlit Secrets — ændringer synkroniseres ikke til GitHub"
 
+    headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github.v3+json"}
+
     for filnavn in ["portfolio.json", "aktive_handler.json"]:
         try:
             lokal_sti = os.path.join(engine.DATA_DIR, filnavn)
-            with open(lokal_sti, "rb") as f:
-                indhold = f.read()
-            b64 = base64.b64encode(indhold).decode()
-            sti_i_repo = f"data/{filnavn}"
-
-            url = f"https://api.github.com/repos/{repo}/contents/{sti_i_repo}"
-            headers = {"Authorization": f"token {token}", "Accept": "application/vnd.github.v3+json"}
-
-            r_get = requests.get(url, headers=headers, timeout=15)
-            sha = r_get.json().get("sha") if r_get.status_code == 200 else None
-
-            payload = {"message": f"Sync {filnavn} fra app", "content": b64, "branch": "main"}
-            if sha:
-                payload["sha"] = sha
-
-            r_put = requests.put(url, headers=headers, json=payload, timeout=15)
-            if r_put.status_code not in (200, 201):
-                return False, f"GitHub sync fejl for {filnavn}: {r_put.status_code} — {r_put.text[:200]}"
+            with open(lokal_sti, encoding="utf-8") as f:
+                lokalt_indhold = json.load(f)
         except Exception as e:
-            return False, f"GitHub sync fejl for {filnavn}: {e}"
+            return False, f"Kunne ikke læse lokal {filnavn}: {e}"
+
+        sti_i_repo = f"data/{filnavn}"
+        url = f"https://api.github.com/repos/{repo}/contents/{sti_i_repo}"
+        flet_fn = _FLET_FUNKTIONER[filnavn]
+        indhold_at_sende = lokalt_indhold
+        sidste_fejl = ""
+
+        for forsoeg in range(1, maks_forsoeg + 1):
+            try:
+                r_get = requests.get(url, headers=headers, timeout=15)
+                remote_sha = None
+                if r_get.status_code == 200:
+                    remote_sha = r_get.json().get("sha")
+                    if forsoeg > 1:
+                        # Efter en 409: flet vores ændringer ind i den friskeste
+                        # fjern-version i stedet for at overskrive den blindt.
+                        try:
+                            remote_indhold = json.loads(base64.b64decode(r_get.json()["content"]).decode("utf-8"))
+                            indhold_at_sende = flet_fn(lokalt_indhold, remote_indhold)
+                        except Exception:
+                            pass  # kan ikke flette — prøv igen med det oprindelige lokale indhold
+
+                b64 = base64.b64encode(json.dumps(indhold_at_sende, ensure_ascii=False, indent=2).encode("utf-8")).decode()
+                payload = {"message": f"Sync {filnavn} fra app", "content": b64, "branch": "main"}
+                if remote_sha:
+                    payload["sha"] = remote_sha
+
+                r_put = requests.put(url, headers=headers, json=payload, timeout=15)
+                if r_put.status_code in (200, 201):
+                    sidste_fejl = ""
+                    break
+                if r_put.status_code == 409:
+                    sidste_fejl = f"409 Conflict (forsøg {forsoeg}/{maks_forsoeg}) — prøver igen med frisk sha"
+                    continue
+                sidste_fejl = f"{r_put.status_code}: {r_put.text[:200]}"
+                break
+            except Exception as e:
+                sidste_fejl = str(e)
+                break
+
+        if sidste_fejl:
+            return False, f"GitHub sync fejl for {filnavn}: {sidste_fejl}"
+
+        # Behold det evt. flettede indhold lokalt også, så appens egen visning
+        # matcher det der nu ligger på GitHub.
+        if indhold_at_sende is not lokalt_indhold:
+            try:
+                with open(lokal_sti, "w", encoding="utf-8") as f:
+                    json.dump(indhold_at_sende, f, ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+
     return True, ""
 
 # Wrap engine's skrivefunktioner én gang, så ALLE køb/salg/portfolio-ændringer
