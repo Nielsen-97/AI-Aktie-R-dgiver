@@ -1138,5 +1138,65 @@
     "score": 9.1,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 115,
+    "ticker": "AMD",
+    "dato": "2026-08-17",
+    "anbefaling": "KØB",
+    "pris_koeb": 514.39,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 116,
+    "ticker": "MA",
+    "dato": "2026-08-17",
+    "anbefaling": "KØB",
+    "pris_koeb": 569.29,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 117,
+    "ticker": "MAERSK-B.CO",
+    "dato": "2026-08-17",
+    "anbefaling": "KØB",
+    "pris_koeb": 20700.0,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 118,
+    "ticker": "EOG",
+    "dato": "2026-08-17",
+    "anbefaling": "KØB",
+    "pris_koeb": 142.61,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 119,
+    "ticker": "PSX",
+    "dato": "2026-08-17",
+    "anbefaling": "KØB",
+    "pris_koeb": 233.61,
+    "score": 10.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 120,
+    "ticker": "ABBV",
+    "dato": "2026-08-17",
+    "anbefaling": "KØB",
+    "pris_koeb": 249.46,
+    "score": 9.3,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
