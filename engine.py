@@ -19,15 +19,15 @@
 import os, sys, json, time, re, requests, sqlite3, subprocess
 import yfinance as yf
 from datetime import datetime, timedelta
-import google.generativeai as genai
+from google import genai as genai_client
+from google.genai import types as genai_types
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 if not GEMINI_API_KEY:
     raise SystemExit("FEJL: GEMINI_API_KEY miljøvariabel er ikke sat.")
-genai.configure(api_key=GEMINI_API_KEY)
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")  # Beholdes for bagudkompatibilitet
-GEMINI_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL = "gemini-3.6-flash"
 import pandas as pd
 import numpy as np
 
@@ -1304,17 +1304,16 @@ def analyser_med_llama(tekst, ticker, screener_data=None):
             "8. Skriv INTET andet end de 10 linjer i formatet\n"
         )
 
-        gemini = genai.GenerativeModel(
-            model_name=GEMINI_MODEL,
-            system_instruction=(
-                "Du er en trading-algoritme. Du returnerer KUN strukturerede handelsanbefalinger "
-                "i det præcise format du får vist. Aldrig fri tekst. Aldrig introduktioner. "
-                "Din første linje er altid 'ANBEFALING:' efterfulgt af KØB, SÆLG eller HOLD."
-            )
-        )
-        response = gemini.generate_content(
-            prompt,
-            generation_config=genai.GenerationConfig(
+        gemini = genai_client.Client(api_key=GEMINI_API_KEY)
+        response = gemini.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=genai_types.GenerateContentConfig(
+                system_instruction=(
+                    "Du er en trading-algoritme. Du returnerer KUN strukturerede handelsanbefalinger "
+                    "i det præcise format du får vist. Aldrig fri tekst. Aldrig introduktioner. "
+                    "Din første linje er altid 'ANBEFALING:' efterfulgt af KØB, SÆLG eller HOLD."
+                ),
                 temperature=0.0,
                 max_output_tokens=500,
             )

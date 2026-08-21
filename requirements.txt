@@ -7,7 +7,7 @@ numpy>=1.26.0
 scikit-learn>=1.3.0
 
 # AI/LLM — Google Gemini (gratis)
-google-generativeai>=0.7.0
+google-genai>=1.0.0
 
 # Nyhedsfeeds (sentiment)
 feedparser>=6.0.11
