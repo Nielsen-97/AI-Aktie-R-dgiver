@@ -16,7 +16,7 @@
    - Forbedret Kelly position sizing
 ============================================================
 """
-import os, sys, json, time, re, requests, sqlite3, subprocess
+import os, sys, json, time, re, requests, sqlite3, subprocess, math
 import yfinance as yf
 from datetime import datetime, timedelta
 from groq import Groq
@@ -2546,9 +2546,22 @@ def koer_reanalyse_aktive():
         score_ved_koeb = h.get("score_ved_koeb", 5)
         dato_kobt = h.get("dato_kobt", "")
 
+        # Spring positionen helt over hvis vi ikke kan stole på tallene —
+        # bedre end at vise "ABBV +nan%" i Discord som et falsk sælg-signal.
+        # koebspris kan være 0/None/NaN pga. dårligt gemte handler; pris_nu
+        # kan mangle hvis hent_kurs() ikke kan hente en gyldig kurs (fx et
+        # hul i Yahoo Finance-data omkring en helligdag).
+        if koebspris is None or not isinstance(koebspris, (int, float)) or math.isnan(koebspris) or koebspris <= 0:
+            log(f"Reanalyse: {ticker} sprunget over — ugyldig købspris ({koebspris!r}) gemt i aktive_handler.json")
+            continue
+
         k = hent_kurs(ticker)
-        pris_nu = k["pris"] if k else koebspris
-        afkast  = round((pris_nu / koebspris - 1) * 100, 2) if koebspris > 0 else 0
+        pris_nu = k["pris"] if k else None
+        if pris_nu is None or not isinstance(pris_nu, (int, float)) or math.isnan(pris_nu) or pris_nu <= 0:
+            log(f"Reanalyse: {ticker} sprunget over — kunne ikke hente en gyldig kurs i dag")
+            continue
+
+        afkast = round((pris_nu / koebspris - 1) * 100, 2)
 
         try:
             dage_holdt = (datetime.now() - datetime.strptime(dato_kobt, "%Y-%m-%d")).days
@@ -2758,13 +2771,22 @@ def hent_backtest_data():
 # UTILITIES
 # ════════════════════════════════════════════════════════════
 def hent_kurs(ticker):
+    """
+    Henter seneste kurs. Returnerer None (ikke en NaN-fyldt dict) hvis
+    Yahoo Finance leverer et hul i data — det sker for rigtigt (fx omkring
+    helligdage eller når den seneste bar endnu ikke er fuldt opdateret), og
+    en ubemærket NaN forplantede sig tidligere hele vejen til Discord som
+    "ABBV +nan%".
+    """
     try:
         h = yf.Ticker(ticker).history(period="6mo")
         if h.empty:
             return None
-        p    = h["Close"].iloc[-1]
-        prev = h["Close"].iloc[-2]
-        return {"pris": round(float(p), 2), "change": round((float(p) - float(prev)) / float(prev) * 100, 2)}
+        p    = float(h["Close"].iloc[-1])
+        prev = float(h["Close"].iloc[-2])
+        if math.isnan(p) or p <= 0 or math.isnan(prev) or prev <= 0:
+            return None
+        return {"pris": round(p, 2), "change": round((p - prev) / prev * 100, 2)}
     except:
         return None
 
