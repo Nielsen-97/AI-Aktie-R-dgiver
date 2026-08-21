@@ -1198,5 +1198,65 @@
     "score": 9.3,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 121,
+    "ticker": "PFE",
+    "dato": "2026-08-21",
+    "anbefaling": "KØB",
+    "pris_koeb": 28.25,
+    "score": 9.3,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 122,
+    "ticker": "T",
+    "dato": "2026-08-21",
+    "anbefaling": "KØB",
+    "pris_koeb": 25.49,
+    "score": 9.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 123,
+    "ticker": "CVX",
+    "dato": "2026-08-21",
+    "anbefaling": "KØB",
+    "pris_koeb": 205.54,
+    "score": 9.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 124,
+    "ticker": "V",
+    "dato": "2026-08-21",
+    "anbefaling": "KØB",
+    "pris_koeb": 370.74,
+    "score": 8.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 125,
+    "ticker": "SCHW",
+    "dato": "2026-08-21",
+    "anbefaling": "KØB",
+    "pris_koeb": 111.75,
+    "score": 8.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 126,
+    "ticker": "ABBV",
+    "dato": "2026-08-21",
+    "anbefaling": "KØB",
+    "pris_koeb": 265.72,
+    "score": 9.8,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
