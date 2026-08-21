@@ -43,7 +43,7 @@ if not GROQ_API_KEY:
     raise SystemExit("FEJL: GROQ_API_KEY miljøvariabel er ikke sat.")
 client = Groq(api_key=GROQ_API_KEY)
 
-GROQ_MODEL = "llama-3.3-70b-versatile"
+GROQ_MODEL = "llama-3.1-70b-versatile"
 
 # ChromaDB — valgfri, bruges kun lokalt (ikke i GitHub Actions)
 try:
