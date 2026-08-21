@@ -27,7 +27,7 @@ if not GEMINI_API_KEY:
 genai.configure(api_key=GEMINI_API_KEY)
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")  # Beholdes for bagudkompatibilitet
-GEMINI_MODEL = "gemini-1.5-flash"
+GEMINI_MODEL = "gemini-2.0-flash"
 import pandas as pd
 import numpy as np
 
