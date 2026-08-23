@@ -1318,5 +1318,65 @@
     "score": 9.2,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 133,
+    "ticker": "REGN",
+    "dato": "2026-08-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 834.04,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 134,
+    "ticker": "JNJ",
+    "dato": "2026-08-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 270.24,
+    "score": 8.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 135,
+    "ticker": "TGT",
+    "dato": "2026-08-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 165.44,
+    "score": 8.6,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 136,
+    "ticker": "XOM",
+    "dato": "2026-08-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 165.11,
+    "score": 8.6,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 137,
+    "ticker": "PSX",
+    "dato": "2026-08-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 242.87,
+    "score": 8.3,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 138,
+    "ticker": "ABBV",
+    "dato": "2026-08-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 264.96,
+    "score": 9.2,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
