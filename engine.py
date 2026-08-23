@@ -1315,7 +1315,7 @@ def analyser_med_llama(tekst, ticker, screener_data=None):
                     "Din første linje er altid 'ANBEFALING:' efterfulgt af KØB, SÆLG eller HOLD."
                 ),
                 temperature=0.0,
-                max_output_tokens=1024,
+                max_output_tokens=2048,
             )
         )
         fuld = response.text.strip()
