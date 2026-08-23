@@ -1315,11 +1315,11 @@ def analyser_med_llama(tekst, ticker, screener_data=None):
                     "Din første linje er altid 'ANBEFALING:' efterfulgt af KØB, SÆLG eller HOLD."
                 ),
                 temperature=0.0,
-                max_output_tokens=500,
+                max_output_tokens=1024,
             )
         )
         fuld = response.text.strip()
-        log(f"Gemini råsvar for {ticker}: {fuld[:300]}")
+
         # Gem i RAG for fremtidig kontekst
         gem_earnings_historik(ticker, tekst, datetime.now().strftime("%Y-%m-%d"))
 
