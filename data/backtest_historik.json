@@ -1438,5 +1438,45 @@
     "score": 9.1,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 145,
+    "ticker": "PFE",
+    "dato": "2026-08-23",
+    "anbefaling": "HOLD",
+    "pris_koeb": 28.07,
+    "score": 9.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 146,
+    "ticker": "LLY",
+    "dato": "2026-08-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 1255.4,
+    "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 147,
+    "ticker": "T",
+    "dato": "2026-08-23",
+    "anbefaling": "HOLD",
+    "pris_koeb": 25.29,
+    "score": 8.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 148,
+    "ticker": "CVX",
+    "dato": "2026-08-23",
+    "anbefaling": "HOLD",
+    "pris_koeb": 205.27,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
