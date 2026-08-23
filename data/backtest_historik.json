@@ -1378,5 +1378,65 @@
     "score": 9.2,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 139,
+    "ticker": "GILD",
+    "dato": "2026-08-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 146.12,
+    "score": 8.4,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 140,
+    "ticker": "TMO",
+    "dato": "2026-08-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 629.27,
+    "score": 8.3,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 141,
+    "ticker": "MA",
+    "dato": "2026-08-23",
+    "anbefaling": "HOLD",
+    "pris_koeb": 580.63,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 142,
+    "ticker": "CMCSA",
+    "dato": "2026-08-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 26.85,
+    "score": 7.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 143,
+    "ticker": "V",
+    "dato": "2026-08-23",
+    "anbefaling": "HOLD",
+    "pris_koeb": 371.04,
+    "score": 8.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 144,
+    "ticker": "ABBV",
+    "dato": "2026-08-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 264.96,
+    "score": 9.1,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
