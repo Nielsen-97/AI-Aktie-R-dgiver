@@ -1258,5 +1258,65 @@
     "score": 9.8,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 127,
+    "ticker": "MA",
+    "dato": "2026-08-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 580.63,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 128,
+    "ticker": "AMGN",
+    "dato": "2026-08-23",
+    "anbefaling": "HOLD",
+    "pris_koeb": 439.33,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 129,
+    "ticker": "BMY",
+    "dato": "2026-08-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 67.01,
+    "score": 8.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 130,
+    "ticker": "COP",
+    "dato": "2026-08-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 134.87,
+    "score": 8.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 131,
+    "ticker": "EOG",
+    "dato": "2026-08-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 153.05,
+    "score": 8.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 132,
+    "ticker": "ABBV",
+    "dato": "2026-08-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 264.96,
+    "score": 9.2,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
