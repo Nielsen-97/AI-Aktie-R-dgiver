@@ -1319,7 +1319,7 @@ def analyser_med_llama(tekst, ticker, screener_data=None):
             )
         )
         fuld = response.text.strip()
-
+        log(f"Gemini råsvar for {ticker}: {fuld[:300]}")
         # Gem i RAG for fremtidig kontekst
         gem_earnings_historik(ticker, tekst, datetime.now().strftime("%Y-%m-%d"))
 
