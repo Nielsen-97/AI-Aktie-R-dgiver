@@ -1478,5 +1478,25 @@
     "score": 8.8,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 149,
+    "ticker": "MRK",
+    "dato": "2026-08-24",
+    "anbefaling": "KØB",
+    "pris_koeb": 152.55,
+    "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 150,
+    "ticker": "BMY",
+    "dato": "2026-08-24",
+    "anbefaling": "HOLD",
+    "pris_koeb": 67.01,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
