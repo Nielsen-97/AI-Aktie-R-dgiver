@@ -1498,5 +1498,65 @@
     "score": 8.8,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 151,
+    "ticker": "AMZN",
+    "dato": "2026-08-25",
+    "anbefaling": "KØB",
+    "pris_koeb": 262.07,
+    "score": 9.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 152,
+    "ticker": "BLK",
+    "dato": "2026-08-25",
+    "anbefaling": "KØB",
+    "pris_koeb": 1172.61,
+    "score": 8.6,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 153,
+    "ticker": "BKNG",
+    "dato": "2026-08-25",
+    "anbefaling": "KØB",
+    "pris_koeb": 213.36,
+    "score": 8.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 154,
+    "ticker": "MSFT",
+    "dato": "2026-08-25",
+    "anbefaling": "KØB",
+    "pris_koeb": 487.31,
+    "score": 8.4,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 155,
+    "ticker": "PYPL",
+    "dato": "2026-08-25",
+    "anbefaling": "KØB",
+    "pris_koeb": 61.68,
+    "score": 8.4,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 156,
+    "ticker": "ABBV",
+    "dato": "2026-08-25",
+    "anbefaling": "KØB",
+    "pris_koeb": 264.52,
+    "score": 9.2,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
