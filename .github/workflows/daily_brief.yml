@@ -104,10 +104,12 @@ jobs:
       - name: Send Discord notifikation
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GITHUB_ACTIONS: "true"
         run: |
           python3 << 'PYTHON'
-          import json, os, re, requests
+          import json, os, requests
+          import engine  # genbruger hent_discord_signaler/beregn_handelsgebyr — ingen duplikeret filtrerings-/gebyrlogik
 
           discord_url = os.getenv("DISCORD_WEBHOOK", "")
           if not discord_url:
@@ -119,18 +121,19 @@ jobs:
                   with open(sti, encoding="utf-8") as f: return json.load(f)
               except: return {}
 
-          brief     = load("data/daily_brief_seneste.json")
           makro     = load("data/makro_seneste.json")
           reanalyse = load("data/reanalyse_seneste.json")
           portfolio = load("data/portfolio.json")
+          brief     = engine.hent_brief_data() or {}
 
           vix   = float(makro.get("vix", 0) or 0)
           sp    = makro.get("sp_status", "?")
           sp1m  = float(makro.get("sp_1m_afkast", 0) or 0)
           dato  = brief.get("dato", "ukendt")
-          kands = brief.get("top_kandidater", [])
-          cash_usd = float(portfolio.get("cash", {}).get("etoro_usd", 0))
-          cash_dkk = float(portfolio.get("cash", {}).get("nordnet_dkk", 0))
+          cash  = portfolio.get("cash", {})
+          cash_usd    = float(cash.get("etoro_usd", 0))
+          cash_dkk    = float(cash.get("nordnet_dkk", 0))
+          cash_endavu = float(cash.get("endavu_dkk", 0))
 
           farve = 0x4ade80 if "Optrend" in sp else 0xf87171
 
@@ -138,48 +141,51 @@ jobs:
           vix_emoji = "🟢" if vix < 20 else "🟡" if vix < 27 else "🔴"
           makro_linje = f"{vix_emoji} VIX {vix:.0f} · SP500 {sp} {sp1m:+.1f}% · {dato}"
 
-          # Sælg-signaler FØRST
+          # Sælg-signaler og eksplicitte stop-loss-opdateringer FØRST
           sael_linjer = []
           for r in reanalyse.get("resultater", []):
+              platform = (r.get("platform") or "").upper() or "ETORO/NORDNET"
+              if r.get("trailing_stop_hoejet"):
+                  sael_linjer.append(
+                      f"⚠️ **OPDATER STOP-LOSS TIL ${r.get('stop_loss')} PÅ {platform} NU** — {r['ticker']}"
+                  )
               if r.get("flag"):
                   afk  = r.get("afkast", 0) or 0
                   flag = r["flag"][0] if r.get("flag") else ""
                   sael_linjer.append(f"🔴 **{r['ticker']}** {afk:+.1f}% — {flag}")
 
-          # Køb — maks 3, fjern duplikater
-          set_tickers = set()
-          unikke = []
-          for r in kands:
-              if r["ticker"] not in set_tickers:
-                  set_tickers.add(r["ticker"])
-                  unikke.append(r)
-
+          # Køb — samme nummererede liste som 'købt X'-svar matcher mod
           koeb_linjer = []
-          for r in unikke[:3]:
-              analyse = r.get("analyse", "")
-              ticker  = r["ticker"]
-              score   = r.get("kombineret", r.get("screener", 5))
-
-              entry_m  = re.search(r"ENTRY PRIS[:\s]+\$?([\d,.]+)", analyse)
-              stop_m   = re.search(r"STOP LOSS[:\s]+\$?([\d,.]+)", analyse)
-              target_m = re.search(r"TARGET PRIS[:\s]+\$?([\d,.]+)", analyse)
-
-              entry  = entry_m.group(1)  if entry_m  else "?"
-              stop   = stop_m.group(1)   if stop_m   else "?"
-              target = target_m.group(1) if target_m else "?"
+          for s in engine.hent_discord_signaler():
+              ticker = s["ticker"]
+              score  = s["score"]
+              entry  = s["entry"]  if s["entry"]  is not None else "?"
+              stop   = s["stop_loss"] if s["stop_loss"] is not None else "?"
+              target = s["target"] if s["target"] is not None else "?"
 
               er_dansk = ticker.endswith(".CO")
-              if er_dansk or cash_usd < 50:
-                  kelly  = 0.15 if float(score) >= 8.5 else 0.10 if float(score) >= 8 else 0.06
-                  beloeb = f"{round(cash_dkk * kelly):,.0f} DKK · Nordnet"
+              pos = engine.beregn_position(score, cash_dkk, cash_usd, er_dansk=er_dansk)
+              beloeb_dkk = pos["beloeb"] if pos["valuta"] == "DKK" else round(pos["beloeb"] * engine.hent_usd_dkk_kurs())
+
+              gebyr = engine.beregn_handelsgebyr(ticker, beloeb_dkk, cash_dkk, cash_usd, cash_endavu)
+
+              if gebyr["utilstraekkelig_cash"]:
+                  invester_linje = "Investér: ingen platform har nok kapital til denne handel"
+              elif gebyr["gebyr_for_hoej"]:
+                  invester_linje = (
+                      f"Investér: {pos['beloeb']} {pos['valuta']} · ⚠️ gebyr {gebyr['gebyr_pct']*100:.1f}% "
+                      f"— for højt, spring over"
+                  )
               else:
-                  kelly  = 0.15 if float(score) >= 8.5 else 0.10 if float(score) >= 8 else 0.06
-                  beloeb = f"${round(cash_usd * kelly):.0f} · eToro"
+                  invester_linje = (
+                      f"Investér: {pos['beloeb']} {pos['valuta']} · {gebyr['platform']} "
+                      f"· gebyr ~{gebyr['omkostning_dkk']:.0f} DKK ({gebyr['gebyr_pct']*100:.1f}%)"
+                  )
 
               koeb_linjer.append(
-                  f"🟢 **{ticker}** · Score {score}/10\n"
+                  f"🟢 **[{s['index']}] {ticker}** · Score {score}/10\n"
                   f"   Køb: **${entry}** · Stop: ${stop} · Mål: ${target}\n"
-                  f"   Investér: {beloeb}"
+                  f"   {invester_linje}"
               )
 
           # Byg beskeden
@@ -191,7 +197,7 @@ jobs:
               dele.append("")
 
           if koeb_linjer:
-              dele.append("**📈 KØB I DAG**")
+              dele.append("**📈 KØB I DAG** · svar med `købt 1`, `købt 2` eller `købt 3` (evt. + pris) for at registrere en handel")
               dele.append("")
               dele.append("\n\n".join(koeb_linjer))
           else:
