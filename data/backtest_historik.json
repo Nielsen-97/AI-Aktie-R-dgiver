@@ -1678,5 +1678,65 @@
     "score": 9.3,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 169,
+    "ticker": "NVDA",
+    "dato": "2026-08-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 227.36,
+    "score": 9.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 170,
+    "ticker": "MS",
+    "dato": "2026-08-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 215.3,
+    "score": 9.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 171,
+    "ticker": "MMM",
+    "dato": "2026-08-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 178.46,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 172,
+    "ticker": "SNOW",
+    "dato": "2026-08-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 331.15,
+    "score": 8.4,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 173,
+    "ticker": "JPM",
+    "dato": "2026-08-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 354.89,
+    "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 174,
+    "ticker": "ABBV",
+    "dato": "2026-08-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 258.53,
+    "score": 9.7,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
