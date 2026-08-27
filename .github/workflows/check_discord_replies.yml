@@ -1,0 +1,51 @@
+name: AI Aktie Rådgiver — Tjek Discord-svar
+
+on:
+  schedule:
+    - cron: "0 * * * 1-5"   # Hver time på hverdage
+
+  workflow_dispatch: {}
+
+jobs:
+  check-discord-replies:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: write
+
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Installer afhængigheder
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Tjek 'købt X'-svar i Discord
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_ACTIONS: "true"
+        run: python discord_bot_check.py
+
+      - name: Gem registrerede handler til repository
+        run: |
+          git config user.name  "AI Aktie Bot"
+          git config user.email "bot@ai-aktie-raadgiver.dk"
+          git add data/aktive_handler.json data/portfolio.json data/discord_svar_behandlet.json data/koersel_log.txt || true
+          git diff --staged --quiet || git commit -m "🤝 Discord-svar registreret $(date +'%Y-%m-%d %H:%M UTC')"
+          git push
