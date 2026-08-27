@@ -56,8 +56,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 104.18,
     "score": 9.2,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 109.39,
+    "afkast_30d": 5.0
   },
   {
     "id": 7,
@@ -66,8 +66,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 62.56,
     "score": 8.9,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 67.57,
+    "afkast_30d": 8.01
   },
   {
     "id": 8,
@@ -76,8 +76,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 362.53,
     "score": 8.6,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 383.9,
+    "afkast_30d": 5.89
   },
   {
     "id": 9,
@@ -86,8 +86,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 245.75,
     "score": 8.5,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 220.67,
+    "afkast_30d": -10.21
   },
   {
     "id": 10,
@@ -96,8 +96,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 218.42,
     "score": 8.4,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 211.99,
+    "afkast_30d": -2.94
   },
   {
     "id": 11,
@@ -1615,6 +1615,66 @@
     "dato": "2026-08-26",
     "anbefaling": "KØB",
     "pris_koeb": 265.79,
+    "score": 9.3,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 163,
+    "ticker": "LRCX",
+    "dato": "2026-08-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 312.88,
+    "score": 8.3,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 164,
+    "ticker": "PNDORA.CO",
+    "dato": "2026-08-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 845.6,
+    "score": 8.3,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 165,
+    "ticker": "PFE",
+    "dato": "2026-08-27",
+    "anbefaling": "HOLD",
+    "pris_koeb": 28.3,
+    "score": 8.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 166,
+    "ticker": "PLTR",
+    "dato": "2026-08-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 177.5,
+    "score": 7.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 167,
+    "ticker": "V",
+    "dato": "2026-08-27",
+    "anbefaling": "HOLD",
+    "pris_koeb": 383.9,
+    "score": 8.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 168,
+    "ticker": "ABBV",
+    "dato": "2026-08-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 262.9,
     "score": 9.3,
     "pris_30d": null,
     "afkast_30d": null
