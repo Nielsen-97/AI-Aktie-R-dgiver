@@ -16,7 +16,7 @@
    - Forbedret Kelly position sizing
 ============================================================
 """
-import os, sys, json, time, re, requests, sqlite3, subprocess
+import os, sys, json, time, re, requests, sqlite3, subprocess, math
 import yfinance as yf
 from datetime import datetime, timedelta
 from google import genai as genai_client
@@ -1093,6 +1093,92 @@ def beregn_position(score, cash_dkk, cash_usd, er_dansk=False, platform_pref=Non
                 "platform": "Nordnet", "begrundelse": begrundelse}
 
 # ════════════════════════════════════════════════════════════
+# HANDELSGEBYRER — Nordnet / Endavu / eToro
+# ════════════════════════════════════════════════════════════
+MAKS_GEBYR_PCT_AF_POSITION = 0.03  # Anbefal aldrig en handel hvor gebyrer æder >3% af positionen
+
+def hent_usd_dkk_kurs():
+    """
+    Henter live USD/DKK-kurs til brug for valutavekslingsgebyrer.
+    Falder tilbage til en fast kurs (7.0) hvis Yahoo Finance ikke svarer —
+    bedre end at lade hele gebyrberegningen crashe midt i en daglig scanning.
+    """
+    try:
+        h = yf.Ticker("USDDKK=X").history(period="5d")
+        if h.empty:
+            return 7.0
+        kurs = float(h["Close"].iloc[-1])
+        if math.isnan(kurs) or kurs <= 0:
+            return 7.0
+        return round(kurs, 4)
+    except:
+        return 7.0
+
+def beregn_handelsgebyr(ticker, beloeb_dkk, cash_dkk, cash_usd, cash_endavu=0.0):
+    """
+    Beregner reelle handelsgebyrer på tværs af de tre platforme og vælger den
+    billigste platform der faktisk har nok kapital til handlen.
+
+    Gebyrsatser (kurtage + evt. 0.25% valutaveksling for udenlandske aktier):
+      Nordnet: max(29 DKK, 0.1% af beløb) + 0.25% ved USD-aktie
+      Endavu:  max(19 DKK, 0.05% af beløb) + 0.25% ved USD-aktie
+      eToro:   0.09% spread — kun en mulighed hvis USD-saldoen er mindst $20
+
+    Returnerer den billigste platform med tilstrækkelig kapital, samt et
+    gebyr_for_hoej flag hvis selv den billigste mulighed æder mere end
+    MAKS_GEBYR_PCT_AF_POSITION af positionens størrelse — det bruges til at
+    undertrykke anbefalingen frem for at foreslå en handel der reelt taber
+    penge på gebyrer alene.
+    """
+    er_dansk = ticker.endswith(".CO")
+    usd_dkk = hent_usd_dkk_kurs()
+    beloeb_usd = beloeb_dkk / usd_dkk
+
+    alle_omkostninger = {}
+
+    nordnet_kurtage = max(29.0, 0.001 * beloeb_dkk)
+    nordnet_fx = 0.0 if er_dansk else 0.0025 * beloeb_dkk
+    if cash_dkk >= beloeb_dkk:
+        alle_omkostninger["Nordnet"] = round(nordnet_kurtage + nordnet_fx, 2)
+
+    endavu_kurtage = max(19.0, 0.0005 * beloeb_dkk)
+    endavu_fx = 0.0 if er_dansk else 0.0025 * beloeb_dkk
+    if cash_endavu >= beloeb_dkk:
+        alle_omkostninger["Endavu"] = round(endavu_kurtage + endavu_fx, 2)
+
+    if not er_dansk and cash_usd >= 20 and cash_usd >= beloeb_usd:
+        etoro_total_usd = beloeb_usd * 0.0009
+        alle_omkostninger["eToro"] = round(etoro_total_usd * usd_dkk, 2)
+
+    if not alle_omkostninger:
+        return {
+            "platform": None, "omkostning_dkk": None, "gebyr_pct": None,
+            "alle_omkostninger": {}, "utilstraekkelig_cash": True,
+            "gebyr_for_hoej": False, "usd_dkk_kurs": usd_dkk,
+            "begrundelse": "Ingen platform har tilstrækkelig kapital til denne handel",
+        }
+
+    billigste_platform = min(alle_omkostninger, key=alle_omkostninger.get)
+    billigste_omkostning = alle_omkostninger[billigste_platform]
+    gebyr_pct = billigste_omkostning / beloeb_dkk if beloeb_dkk > 0 else 1.0
+    gebyr_for_hoej = gebyr_pct > MAKS_GEBYR_PCT_AF_POSITION
+
+    begrundelse = f"{billigste_platform} billigst: {billigste_omkostning:.0f} DKK ({gebyr_pct*100:.1f}% af positionen)"
+    if gebyr_for_hoej:
+        begrundelse += f" — over {MAKS_GEBYR_PCT_AF_POSITION*100:.0f}% grænsen, frarådes"
+
+    return {
+        "platform": billigste_platform,
+        "omkostning_dkk": billigste_omkostning,
+        "gebyr_pct": round(gebyr_pct, 4),
+        "alle_omkostninger": alle_omkostninger,
+        "utilstraekkelig_cash": False,
+        "gebyr_for_hoej": gebyr_for_hoej,
+        "usd_dkk_kurs": usd_dkk,
+        "begrundelse": begrundelse,
+    }
+
+# ════════════════════════════════════════════════════════════
 # SAMLET SCORE
 # ════════════════════════════════════════════════════════════
 def beregn_samlet(f, t, s, insider_bonus=0.0, short_bonus=0.0):
@@ -1910,6 +1996,14 @@ def koer_dyb_analyse(kandidater, makro=None):
         gange = r.get("gange_anbefalet_5d", 0)
         komb = round(max(1.0, komb - gange * 1.0), 1)
 
+        # Slutfilter: makro-justering og repetitionsstraf kan trække den
+        # endelige kombinerede score under 7.5 selvom samlet var over ved
+        # optag — uden dette tjek slap svagere signaler (fx PFE 7.0, T 6.9)
+        # igennem til Discord som om de var stærke købssignaler.
+        if komb < 7.5:
+            log(f"  {r['ticker']}: kombineret {komb} < 7.5 efter justering — springes over")
+            continue
+
         log(f"  {r['ticker']}: screener={r['samlet']} Groq={llama_s} kombineret={komb} (anbefalet {gange}x)")
         res.append({
             "ticker":     r["ticker"],
@@ -2018,9 +2112,19 @@ def koer_reanalyse_aktive():
         score_ved_koeb = h.get("score_ved_koeb", 5)
         dato_kobt = h.get("dato_kobt", "")
 
+        # Spring positionen helt over hvis vi ikke kan stole på tallene —
+        # bedre end at vise "ABBV +nan%" i Discord som et falsk sælg-signal.
+        if koebspris is None or not isinstance(koebspris, (int, float)) or math.isnan(koebspris) or koebspris <= 0:
+            log(f"Reanalyse: {ticker} sprunget over — ugyldig købspris ({koebspris!r}) gemt i aktive_handler.json")
+            continue
+
         k = hent_kurs(ticker)
-        pris_nu = k["pris"] if k else koebspris
-        afkast  = round((pris_nu / koebspris - 1) * 100, 2) if koebspris > 0 else 0
+        pris_nu = k["pris"] if k else None
+        if pris_nu is None or not isinstance(pris_nu, (int, float)) or math.isnan(pris_nu) or pris_nu <= 0:
+            log(f"Reanalyse: {ticker} sprunget over — kunne ikke hente en gyldig kurs i dag")
+            continue
+
+        afkast = round((pris_nu / koebspris - 1) * 100, 2)
 
         try:
             dage_holdt = (datetime.now() - datetime.strptime(dato_kobt, "%Y-%m-%d")).days
@@ -2028,6 +2132,7 @@ def koer_reanalyse_aktive():
             dage_holdt = 0
 
         flag = []
+        trailing_stop_hoejet = False
 
         # ── Trailing stop-loss: hæv aldrig sænk ──────────────
         if stop_loss and koebspris > 0 and pris_nu > koebspris:
@@ -2037,6 +2142,7 @@ def koer_reanalyse_aktive():
                 h["stop_loss"] = ny_stop
                 stop_loss = ny_stop
                 aendret = True
+                trailing_stop_hoejet = True
                 flag.append(f"Trailing stop hævet til ${ny_stop} (låser gevinst)")
 
         # ── Tids-stop: død kapital ────────────────────────────
@@ -2083,6 +2189,8 @@ def koer_reanalyse_aktive():
             "stop_loss":  stop_loss,
             "target":     target,
             "flag":       flag,
+            "platform":   h.get("platform", ""),
+            "trailing_stop_hoejet": trailing_stop_hoejet,
         })
         time.sleep(0.5)
 
@@ -2230,13 +2338,22 @@ def hent_backtest_data():
 # UTILITIES
 # ════════════════════════════════════════════════════════════
 def hent_kurs(ticker):
+    """
+    Henter seneste kurs. Returnerer None (ikke en NaN-fyldt dict) hvis
+    Yahoo Finance leverer et hul i data — det sker for rigtigt (fx omkring
+    helligdage eller når den seneste bar endnu ikke er fuldt opdateret), og
+    en ubemærket NaN forplantede sig tidligere hele vejen til Discord som
+    "ABBV +nan%".
+    """
     try:
         h = yf.Ticker(ticker).history(period="6mo")
         if h.empty:
             return None
-        p    = h["Close"].iloc[-1]
-        prev = h["Close"].iloc[-2]
-        return {"pris": round(float(p), 2), "change": round((float(p) - float(prev)) / float(prev) * 100, 2)}
+        p    = float(h["Close"].iloc[-1])
+        prev = float(h["Close"].iloc[-2])
+        if math.isnan(p) or p <= 0 or math.isnan(prev) or prev <= 0:
+            return None
+        return {"pris": round(p, 2), "change": round((p - prev) / prev * 100, 2)}
     except:
         return None
 
@@ -2245,6 +2362,108 @@ def hent_screener_data():
 
 def hent_brief_data():
     return _safe_json_load(BRIEF_FILE)
+
+# ════════════════════════════════════════════════════════════
+# DISCORD "KØBT X" SVAR
+# ════════════════════════════════════════════════════════════
+DISCORD_MIN_SCORE = 7.5
+
+def hent_discord_signaler():
+    """
+    Bygger nøjagtig den samme liste af op til 3 nummererede købssignaler som
+    vises i Discord-notifikationen. Single source of truth — både
+    daily_brief-beskeden og 'købt X'-svarshåndteringen kalder denne, så et
+    tal i Discord altid matcher samme aktie begge steder, selv hvis
+    filtrering/rækkefølge ændres senere.
+    """
+    brief = _safe_json_load(BRIEF_FILE) or {}
+    kands = brief.get("top_kandidater", [])
+
+    sete_tickers = set()
+    unikke = []
+    for r in kands:
+        score = float(r.get("kombineret", r.get("screener", 0)) or 0)
+        if score < DISCORD_MIN_SCORE:
+            continue
+        ticker = r.get("ticker")
+        if ticker and ticker not in sete_tickers:
+            sete_tickers.add(ticker)
+            unikke.append(r)
+
+    signaler = []
+    for i, r in enumerate(unikke[:3], start=1):
+        analyse = r.get("analyse", "")
+        ticker  = r["ticker"]
+
+        entry_m  = re.search(r"ENTRY PRIS[:\s]+\$?([\d,.]+)", analyse)
+        stop_m   = re.search(r"STOP LOSS[:\s]+\$?([\d,.]+)", analyse)
+        target_m = re.search(r"TARGET PRIS[:\s]+\$?([\d,.]+)", analyse)
+
+        signaler.append({
+            "index":     i,
+            "ticker":    ticker,
+            "score":     float(r.get("kombineret", r.get("screener", 5))),
+            "entry":     float(entry_m.group(1).replace(",", ""))  if entry_m  else None,
+            "stop_loss": float(stop_m.group(1).replace(",", ""))   if stop_m   else None,
+            "target":    float(target_m.group(1).replace(",", "")) if target_m else None,
+            "analyse":   analyse,
+        })
+    return signaler
+
+def registrer_koeb_fra_discord_signal(index, pris_override=None):
+    """
+    Registrerer en handel ud fra et Discord-svar som 'købt 1' eller
+    'købt 2 252.30'. index er 1-baseret og matcher tallet foran signalet
+    som det blev vist i Discord (se hent_discord_signaler). Vælger selv
+    billigste platform med tilstrækkelig kapital via beregn_handelsgebyr.
+    """
+    signaler = hent_discord_signaler()
+    signal = next((s for s in signaler if s["index"] == index), None)
+    if not signal:
+        return {"ok": False, "fejl": f"Intet signal #{index} i dagens brief"}
+
+    ticker    = signal["ticker"]
+    er_dansk  = ticker.endswith(".CO")
+    koebspris = pris_override if pris_override else signal.get("entry")
+    if not koebspris or koebspris <= 0:
+        return {"ok": False, "fejl": f"Ingen gyldig entry-pris for {ticker} — angiv pris manuelt ('købt {index} <pris>')"}
+
+    pf = indlaes_portfolio()
+    cash_dkk    = float(pf.get("cash", {}).get("nordnet_dkk", 0))
+    cash_usd    = float(pf.get("cash", {}).get("etoro_usd", 0))
+    cash_endavu = float(pf.get("cash", {}).get("endavu_dkk", 0))
+
+    pos = beregn_position(signal["score"], cash_dkk, cash_usd, er_dansk=er_dansk)
+    beloeb_dkk = pos["beloeb"] if pos["valuta"] == "DKK" else round(pos["beloeb"] * hent_usd_dkk_kurs())
+    gebyr = beregn_handelsgebyr(ticker, beloeb_dkk, cash_dkk, cash_usd, cash_endavu)
+
+    if gebyr["utilstraekkelig_cash"]:
+        return {"ok": False, "fejl": f"Ingen platform har nok kapital til {ticker} ({beloeb_dkk:.0f} DKK)"}
+
+    platform_key = {"Nordnet": "nordnet", "Endavu": "endavu", "eToro": "etoro"}[gebyr["platform"]]
+
+    if platform_key == "etoro":
+        beloeb = round(beloeb_dkk / gebyr["usd_dkk_kurs"], 2)
+        valuta = "USD"
+    else:
+        beloeb = round(beloeb_dkk)
+        valuta = "DKK"
+
+    antal = round(beloeb / koebspris, 4) if koebspris > 0 else 0
+
+    registrer_koeb(
+        ticker=ticker, navn=ticker, platform=platform_key, antal=antal,
+        koebspris=koebspris, stop_loss=signal.get("stop_loss"),
+        target=signal.get("target"), beloeb=beloeb, valuta=valuta,
+        score=signal["score"], analyse=signal.get("analyse", ""),
+    )
+
+    return {
+        "ok": True, "ticker": ticker, "platform": gebyr["platform"],
+        "antal": antal, "koebspris": koebspris, "beloeb": beloeb, "valuta": valuta,
+        "gebyr_dkk": gebyr["omkostning_dkk"], "stop_loss": signal.get("stop_loss"),
+        "target": signal.get("target"),
+    }
 
 # ════════════════════════════════════════════════════════════
 # MAIN CLI
