@@ -2,7 +2,13 @@ name: AI Aktie Rådgiver — Tjek Discord-svar
 
 on:
   schedule:
-    - cron: "0 * * * 1-5"   # Hver time på hverdage
+    # Hver 5. minut på hverdage — nødvendigt for at eToro-bekræftelsesflowets
+    # 5-minutters timeout ('svar ja inden for 5 minutter') rent faktisk bliver
+    # tjekket ofte nok. GitHub Actions' cron-scheduler kan forsinkes et par
+    # minutter under belastning, så en udløbet bekræftelse kan i praksis
+    # blive annulleret lidt senere end præcis 5:00 — det er acceptabelt her,
+    # men vær opmærksom på det.
+    - cron: "*/5 * * * 1-5"
 
   workflow_dispatch: {}
 
@@ -39,6 +45,9 @@ jobs:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ETORO_API_KEY: ${{ secrets.ETORO_API_KEY }}
+          ETORO_USER_KEY: ${{ secrets.ETORO_USER_KEY }}
+          ETORO_DEMO: ${{ secrets.ETORO_DEMO }}
           GITHUB_ACTIONS: "true"
         run: python discord_bot_check.py
 
@@ -46,6 +55,6 @@ jobs:
         run: |
           git config user.name  "AI Aktie Bot"
           git config user.email "bot@ai-aktie-raadgiver.dk"
-          git add data/aktive_handler.json data/portfolio.json data/discord_svar_behandlet.json data/koersel_log.txt || true
+          git add data/aktive_handler.json data/portfolio.json data/discord_svar_behandlet.json data/etoro_pending_ordre.json data/koersel_log.txt || true
           git diff --staged --quiet || git commit -m "🤝 Discord-svar registreret $(date +'%Y-%m-%d %H:%M UTC')"
           git push

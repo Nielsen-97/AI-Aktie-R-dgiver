@@ -105,11 +105,14 @@ jobs:
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ETORO_API_KEY: ${{ secrets.ETORO_API_KEY }}
+          ETORO_USER_KEY: ${{ secrets.ETORO_USER_KEY }}
+          ETORO_DEMO: ${{ secrets.ETORO_DEMO }}
           GITHUB_ACTIONS: "true"
         run: |
           python3 << 'PYTHON'
           import json, os, requests
-          import engine  # genbruger hent_discord_signaler/beregn_handelsgebyr — ingen duplikeret filtrerings-/gebyrlogik
+          import engine  # genbruger hent_discord_signaler/beregn_handelsgebyr/hent_cash_saldi — ingen duplikeret logik
 
           discord_url = os.getenv("DISCORD_WEBHOOK", "")
           if not discord_url:
@@ -123,17 +126,19 @@ jobs:
 
           makro     = load("data/makro_seneste.json")
           reanalyse = load("data/reanalyse_seneste.json")
-          portfolio = load("data/portfolio.json")
           brief     = engine.hent_brief_data() or {}
 
           vix   = float(makro.get("vix", 0) or 0)
           sp    = makro.get("sp_status", "?")
           sp1m  = float(makro.get("sp_1m_afkast", 0) or 0)
           dato  = brief.get("dato", "ukendt")
-          cash  = portfolio.get("cash", {})
-          cash_usd    = float(cash.get("etoro_usd", 0))
-          cash_dkk    = float(cash.get("nordnet_dkk", 0))
-          cash_endavu = float(cash.get("endavu_dkk", 0))
+
+          # eToro-saldoen hentes LIVE fra API'et her hvis nøgler er sat —
+          # portfolio.json bruges kun som fallback (se engine.hent_cash_saldi).
+          saldi = engine.hent_cash_saldi()
+          cash_usd    = saldi["etoro_usd"]
+          cash_dkk    = saldi["nordnet_dkk"]
+          cash_endavu = saldi["endavu_dkk"]
 
           farve = 0x4ade80 if "Optrend" in sp else 0xf87171
 
