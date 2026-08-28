@@ -106,8 +106,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 58.32,
     "score": 9.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 54.22,
+    "afkast_30d": -7.03
   },
   {
     "id": 12,
@@ -116,8 +116,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 562.75,
     "score": 8.5,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 595.95,
+    "afkast_30d": 5.9
   },
   {
     "id": 13,
@@ -126,8 +126,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 581.31,
     "score": 8.2,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 563.22,
+    "afkast_30d": -3.11
   },
   {
     "id": 14,
@@ -136,8 +136,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 340.08,
     "score": 8.1,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 316.24,
+    "afkast_30d": -7.01
   },
   {
     "id": 15,
@@ -146,8 +146,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 266.73,
     "score": 8.1,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 267.0,
+    "afkast_30d": 0.1
   },
   {
     "id": 16,
@@ -1735,6 +1735,46 @@
     "dato": "2026-08-27",
     "anbefaling": "KØB",
     "pris_koeb": 258.53,
+    "score": 9.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 175,
+    "ticker": "BAC",
+    "dato": "2026-08-28",
+    "anbefaling": "KØB",
+    "pris_koeb": 62.06,
+    "score": 8.3,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 176,
+    "ticker": "T",
+    "dato": "2026-08-28",
+    "anbefaling": "HOLD",
+    "pris_koeb": 25.94,
+    "score": 8.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 177,
+    "ticker": "SBUX",
+    "dato": "2026-08-28",
+    "anbefaling": "KØB",
+    "pris_koeb": 107.75,
+    "score": 7.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 178,
+    "ticker": "ABBV",
+    "dato": "2026-08-28",
+    "anbefaling": "KØB",
+    "pris_koeb": 257.39,
     "score": 9.7,
     "pris_30d": null,
     "afkast_30d": null
