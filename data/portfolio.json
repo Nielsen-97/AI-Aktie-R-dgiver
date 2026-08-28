@@ -66,11 +66,20 @@
       "koebspris": 249.5,
       "type": "aktie",
       "strategi": "aktiv"
+    },
+    {
+      "ticker": "MMM",
+      "navn": "MMM",
+      "platform": "etoro",
+      "antal": 0.048,
+      "koebspris": 178.43,
+      "type": "aktie",
+      "strategi": "aktiv"
     }
   ],
   "cash": {
     "nordnet_dkk": 6000.0,
-    "etoro_usd": 106.85,
+    "etoro_usd": 98.28,
     "endavu_dkk": 200.0
   },
   "watchlist": [

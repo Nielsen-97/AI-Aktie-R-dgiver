@@ -1,0 +1,2 @@
+[2026-08-28 12:36:59] Discord-svar: mathias6533 skrev 'købt 3' — forsøger at registrere signal #3
+[2026-08-28 12:36:59] KØBT: MMM 0.048 stk à 178.43 via etoro — SL:165.0 T:198.0
