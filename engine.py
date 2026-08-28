@@ -2364,6 +2364,139 @@ def hent_brief_data():
     return _safe_json_load(BRIEF_FILE)
 
 # ════════════════════════════════════════════════════════════
+# eToro API — live saldo, positioner og ordre-udførelse
+#
+# Se etoro_client.py for advarslen om at endpoint-stier/feltnavne der IKKE
+# er verificeret mod eToro's officielle dokumentation — API-adgang var
+# blokeret i det miljø hvor dette blev skrevet.
+# ════════════════════════════════════════════════════════════
+try:
+    import etoro_client
+    ETORO_KLIENT_TILGAENGELIG = True
+except Exception as _etoro_import_fejl:
+    ETORO_KLIENT_TILGAENGELIG = False
+    log(f"eToro-klient kunne ikke indlæses: {_etoro_import_fejl}")
+
+def hent_cash_saldi():
+    """
+    Henter kontantbeholdning for alle tre platforme. eToro-saldoen hentes
+    LIVE fra eToro API'et hvis nøgler er sat og kaldet lykkes — portfolio.json's
+    gemte etoro_usd-tal bruges kun som fallback, da det kan drive ud af sync
+    med den rigtige konto (fx handler foretaget direkte i eToro-appen).
+    """
+    pf = indlaes_portfolio()
+    saldi = {
+        "nordnet_dkk": float(pf.get("cash", {}).get("nordnet_dkk", 0)),
+        "endavu_dkk":  float(pf.get("cash", {}).get("endavu_dkk", 0)),
+        "etoro_usd":   float(pf.get("cash", {}).get("etoro_usd", 0)),
+        "etoro_live":  False,
+    }
+    if ETORO_KLIENT_TILGAENGELIG and etoro_client.ETORO_API_KEY and etoro_client.ETORO_USER_KEY:
+        try:
+            konto = etoro_client.hent_konto()
+            if konto.get("saldo_usd") is not None:
+                saldi["etoro_usd"] = konto["saldo_usd"]
+                saldi["etoro_live"] = True
+        except etoro_client.EtoroFejl as e:
+            log(f"eToro saldo-opslag fejlede, falder tilbage til portfolio.json: {e}")
+    return saldi
+
+def hent_etoro_positioner():
+    """Henter åbne eToro-positioner live. Returnerer [] hvis API'et ikke er konfigureret/tilgængeligt."""
+    if not (ETORO_KLIENT_TILGAENGELIG and etoro_client.ETORO_API_KEY and etoro_client.ETORO_USER_KEY):
+        return []
+    try:
+        return etoro_client.hent_positioner()
+    except etoro_client.EtoroFejl as e:
+        log(f"eToro positions-opslag fejlede: {e}")
+        return []
+
+def byg_ordre_forslag(index, pris_override=None):
+    """
+    Bygger et handelsforslag ud fra et Discord-signal UDEN at udføre eller
+    registrere noget — bruges til bekræftelsesflowet, så brugeren ser
+    præcis hvad der vil ske før noget rører rigtige penge.
+
+    Sætter auto_udfoerbar=True kun når eToro er den valgte platform (der er
+    ingen API-integration for Nordnet/Endavu) — kaldende kode skal falde
+    tilbage til registrer_koeb_fra_discord_signal() for andre platforme.
+    """
+    signaler = hent_discord_signaler()
+    signal = next((s for s in signaler if s["index"] == index), None)
+    if not signal:
+        return {"ok": False, "fejl": f"Intet signal #{index} i dagens brief"}
+
+    ticker    = signal["ticker"]
+    er_dansk  = ticker.endswith(".CO")
+    koebspris = pris_override if pris_override else signal.get("entry")
+
+    if koebspris is None:
+        k = hent_kurs(ticker)
+        koebspris = k["pris"] if k else None
+    if not koebspris or koebspris <= 0:
+        return {"ok": False, "fejl": f"Ingen gyldig pris for {ticker} — angiv pris manuelt ('købt {index} <pris>')"}
+
+    saldi = hent_cash_saldi()
+    pos = beregn_position(signal["score"], saldi["nordnet_dkk"], saldi["etoro_usd"], er_dansk=er_dansk)
+    beloeb_dkk = pos["beloeb"] if pos["valuta"] == "DKK" else round(pos["beloeb"] * hent_usd_dkk_kurs())
+    gebyr = beregn_handelsgebyr(ticker, beloeb_dkk, saldi["nordnet_dkk"], saldi["etoro_usd"], saldi["endavu_dkk"])
+
+    if gebyr["utilstraekkelig_cash"]:
+        return {"ok": False, "fejl": f"Ingen platform har nok kapital til {ticker} ({beloeb_dkk:.0f} DKK)"}
+
+    if gebyr["platform"] != "eToro":
+        return {
+            "ok": True, "auto_udfoerbar": False, "platform": gebyr["platform"],
+            "index": index, "ticker": ticker,
+        }
+
+    beloeb_usd = round(beloeb_dkk / gebyr["usd_dkk_kurs"], 2)
+    antal = round(beloeb_usd / koebspris, 4)
+    return {
+        "ok": True, "auto_udfoerbar": True, "platform": "eToro",
+        "index": index, "ticker": ticker, "antal": antal,
+        "pris_estimat": koebspris, "beloeb_usd": beloeb_usd,
+        "stop_loss": signal.get("stop_loss"), "target": signal.get("target"),
+        "score": signal["score"], "analyse": signal.get("analyse", ""),
+        "gebyr_dkk": gebyr["omkostning_dkk"],
+    }
+
+def udfoer_etoro_koeb(forslag):
+    """
+    Udfører et BEKRÆFTET forslag (fra byg_ordre_forslag) som en rigtig
+    markedsordre på eToro, og registrerer den udførte handel i
+    aktive_handler.json/portfolio.json med den FAKTISKE fill-pris fra
+    eToro — ikke prisestimatet fra forslaget.
+    """
+    if not ETORO_KLIENT_TILGAENGELIG:
+        return {"ok": False, "fejl": "eToro-klienten kunne ikke indlæses"}
+    try:
+        resultat = etoro_client.placer_markedsordre(
+            forslag["ticker"], forslag["beloeb_usd"],
+            stop_loss_pris=forslag.get("stop_loss"),
+            take_profit_pris=forslag.get("target"),
+        )
+    except etoro_client.EtoroFejl as e:
+        return {"ok": False, "fejl": str(e)}
+
+    fill_pris = resultat["fill_pris"] or forslag["pris_estimat"]
+    antal = round(forslag["beloeb_usd"] / fill_pris, 4) if fill_pris else forslag["antal"]
+
+    registrer_koeb(
+        ticker=forslag["ticker"], navn=forslag["ticker"], platform="etoro",
+        antal=antal, koebspris=fill_pris, stop_loss=forslag.get("stop_loss"),
+        target=forslag.get("target"), beloeb=forslag["beloeb_usd"], valuta="USD",
+        score=forslag["score"], analyse=forslag.get("analyse", ""),
+    )
+
+    return {
+        "ok": True, "ticker": forslag["ticker"], "antal": antal,
+        "fill_pris": fill_pris, "position_id": resultat["position_id"],
+        "sl_tp_bekraeftet": resultat["sl_tp_bekraeftet"],
+        "stop_loss": forslag.get("stop_loss"), "target": forslag.get("target"),
+    }
+
+# ════════════════════════════════════════════════════════════
 # DISCORD "KØBT X" SVAR
 # ════════════════════════════════════════════════════════════
 DISCORD_MIN_SCORE = 7.5
@@ -2428,10 +2561,10 @@ def registrer_koeb_fra_discord_signal(index, pris_override=None):
     if not koebspris or koebspris <= 0:
         return {"ok": False, "fejl": f"Ingen gyldig entry-pris for {ticker} — angiv pris manuelt ('købt {index} <pris>')"}
 
-    pf = indlaes_portfolio()
-    cash_dkk    = float(pf.get("cash", {}).get("nordnet_dkk", 0))
-    cash_usd    = float(pf.get("cash", {}).get("etoro_usd", 0))
-    cash_endavu = float(pf.get("cash", {}).get("endavu_dkk", 0))
+    saldi = hent_cash_saldi()
+    cash_dkk    = saldi["nordnet_dkk"]
+    cash_usd    = saldi["etoro_usd"]
+    cash_endavu = saldi["endavu_dkk"]
 
     pos = beregn_position(signal["score"], cash_dkk, cash_usd, er_dansk=er_dansk)
     beloeb_dkk = pos["beloeb"] if pos["valuta"] == "DKK" else round(pos["beloeb"] * hent_usd_dkk_kurs())
