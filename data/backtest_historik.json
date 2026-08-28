@@ -1778,5 +1778,65 @@
     "score": 9.7,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 179,
+    "ticker": "CRM",
+    "dato": "2026-08-28",
+    "anbefaling": "KØB",
+    "pris_koeb": 259.17,
+    "score": 8.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 180,
+    "ticker": "MSFT",
+    "dato": "2026-08-28",
+    "anbefaling": "HOLD",
+    "pris_koeb": 517.29,
+    "score": 8.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 181,
+    "ticker": "SLB",
+    "dato": "2026-08-28",
+    "anbefaling": "KØB",
+    "pris_koeb": 56.76,
+    "score": 7.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 182,
+    "ticker": "PSX",
+    "dato": "2026-08-28",
+    "anbefaling": "HOLD",
+    "pris_koeb": 243.36,
+    "score": 8.6,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 183,
+    "ticker": "PNDORA.CO",
+    "dato": "2026-08-28",
+    "anbefaling": "HOLD",
+    "pris_koeb": 854.0,
+    "score": 8.4,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 184,
+    "ticker": "ABBV",
+    "dato": "2026-08-28",
+    "anbefaling": "KØB",
+    "pris_koeb": 256.31,
+    "score": 9.0,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
