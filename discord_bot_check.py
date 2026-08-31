@@ -7,8 +7,9 @@ forbindelse åben. I stedet henter scriptet de seneste beskeder i kanalen
 via Discord REST API'et (bot-token) hver gang det køres, og behandler dem
 der matcher 'købt 1' / 'købt 2' / 'købt 3' (evt. + pris) eller 'ja'/'nej'.
 Kørt fra .github/workflows/check_discord_replies.yml hver 5. minut på
-hverdage (nødvendigt for at 5-minutters bekræftelsesvinduet nedenfor giver
-mening).
+hverdage (nødvendigt for at 15-minutters bekræftelsesvinduet nedenfor giver
+mening — sat højere end selve cron-intervallet fordi GitHub Actions'
+schedule-trigger ikke i praksis rammer hvert 5. minut pålideligt).
 
 To slags handel:
   - Nordnet/Endavu: ingen API-integration findes, så handlen registreres
@@ -18,7 +19,7 @@ To slags handel:
   - eToro: der ER en API-integration (se etoro_client.py), så en 'købt X'
     her ville udføre en RIGTIG ordre. Derfor kræver eToro-handler et
     eksplicit bekræftelsesflow: botten foreslår handlen, og udfører den
-    KUN hvis brugeren svarer 'ja' inden for 5 minutter. Svares der 'nej',
+    KUN hvis brugeren svarer 'ja' inden for 15 minutter. Svares der 'nej',
     eller udløber tiden, annulleres forslaget uden at noget udføres.
 """
 import os
@@ -34,7 +35,7 @@ DISCORD_CHANNEL_ID = os.getenv("DISCORD_CHANNEL_ID", "")
 PROCESSED_FILE = os.path.join(engine.DATA_DIR, "discord_svar_behandlet.json")
 PENDING_FILE   = os.path.join(engine.DATA_DIR, "etoro_pending_ordre.json")
 
-PENDING_TIMEOUT = timedelta(minutes=5)
+PENDING_TIMEOUT = timedelta(minutes=15)
 
 KOEBT_MOENSTER = re.compile(
     r"^\s*købt\s+([123])(?:\s+(\d+(?:[.,]\d+)?))?\s*[.!]?\s*$", re.IGNORECASE
@@ -125,7 +126,7 @@ def haandter_nej():
 
 
 def haandter_timeout(pending):
-    send_besked(f"❌ Køb annulleret — timeout ({pending['ticker']}, ingen bekræftelse inden for 5 minutter).")
+    send_besked(f"❌ Køb annulleret — timeout ({pending['ticker']}, ingen bekræftelse inden for 15 minutter).")
 
 
 def byg_bekraeft_besked(forslag):
@@ -144,7 +145,7 @@ def byg_bekraeft_besked(forslag):
     return (
         f"⚠️ Bekræft køb{tag_del}: **{forslag['ticker']}** {forslag['antal']} stk à ${forslag['pris_estimat']:.2f} "
         f"via eToro (${forslag['beloeb_usd']:.2f}).{note}\n"
-        f"Svar `ja` inden for 5 minutter for at bekræfte, eller `nej` for at annullere."
+        f"Svar `ja` inden for 15 minutter for at bekræfte, eller `nej` for at annullere."
     )
 
 
