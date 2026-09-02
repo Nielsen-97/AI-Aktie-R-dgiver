@@ -306,8 +306,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 65.31,
     "score": 8.6,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 66.92,
+    "afkast_30d": 2.47
   },
   {
     "id": 32,
@@ -316,8 +316,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 215.22,
     "score": 8.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 205.16,
+    "afkast_30d": -4.67
   },
   {
     "id": 33,
@@ -326,8 +326,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 105.24,
     "score": 8.7,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 108.28,
+    "afkast_30d": 2.89
   },
   {
     "id": 34,
@@ -336,8 +336,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 105.25,
     "score": 7.7,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 106.15,
+    "afkast_30d": 0.86
   },
   {
     "id": 35,
@@ -346,8 +346,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 211.68,
     "score": 8.6,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 252.02,
+    "afkast_30d": 19.06
   },
   {
     "id": 36,
@@ -1946,6 +1946,56 @@
     "anbefaling": "HOLD",
     "pris_koeb": 28.46,
     "score": 8.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 196,
+    "ticker": "COP",
+    "dato": "2026-09-02",
+    "anbefaling": "KØB",
+    "pris_koeb": 136.19,
+    "score": 8.6,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 197,
+    "ticker": "XOM",
+    "dato": "2026-09-02",
+    "anbefaling": "KØB",
+    "pris_koeb": 164.55,
+    "score": 8.4,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 198,
+    "ticker": "CRM",
+    "dato": "2026-09-02",
+    "anbefaling": "HOLD",
+    "pris_koeb": 258.11,
+    "score": 9.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 199,
+    "ticker": "NVDA",
+    "dato": "2026-09-02",
+    "anbefaling": "KØB",
+    "pris_koeb": 217.44,
+    "score": 8.1,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 200,
+    "ticker": "PFE",
+    "dato": "2026-09-02",
+    "anbefaling": "HOLD",
+    "pris_koeb": 28.55,
+    "score": 8.8,
     "pris_30d": null,
     "afkast_30d": null
   }
