@@ -356,8 +356,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 831.8,
     "score": 7.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 837.2,
+    "afkast_30d": 0.65
   },
   {
     "id": 37,
@@ -1996,6 +1996,36 @@
     "anbefaling": "HOLD",
     "pris_koeb": 28.55,
     "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 201,
+    "ticker": "REGN",
+    "dato": "2026-09-03",
+    "anbefaling": "KØB",
+    "pris_koeb": 852.03,
+    "score": 8.6,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 202,
+    "ticker": "AMGN",
+    "dato": "2026-09-03",
+    "anbefaling": "KØB",
+    "pris_koeb": 442.84,
+    "score": 8.4,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 203,
+    "ticker": "EOG",
+    "dato": "2026-09-03",
+    "anbefaling": "KØB",
+    "pris_koeb": 0,
+    "score": 8.2,
     "pris_30d": null,
     "afkast_30d": null
   }
