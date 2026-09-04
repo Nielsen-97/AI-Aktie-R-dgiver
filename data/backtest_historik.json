@@ -366,8 +366,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 58.54,
     "score": 9.1,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 56.82,
+    "afkast_30d": -2.94
   },
   {
     "id": 38,
@@ -376,8 +376,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 248.79,
     "score": 8.9,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 207.63,
+    "afkast_30d": -16.54
   },
   {
     "id": 39,
@@ -386,8 +386,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 589.33,
     "score": 8.8,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 532.95,
+    "afkast_30d": -9.57
   },
   {
     "id": 40,
@@ -396,8 +396,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 377.65,
     "score": 8.7,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 342.48,
+    "afkast_30d": -9.31
   },
   {
     "id": 41,
@@ -406,8 +406,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 377.65,
     "score": 8.7,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 342.48,
+    "afkast_30d": -9.31
   },
   {
     "id": 42,
@@ -2025,6 +2025,46 @@
     "dato": "2026-09-03",
     "anbefaling": "KØB",
     "pris_koeb": 0,
+    "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 204,
+    "ticker": "BMY",
+    "dato": "2026-09-04",
+    "anbefaling": "KØB",
+    "pris_koeb": 68.09,
+    "score": 8.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 205,
+    "ticker": "SCHW",
+    "dato": "2026-09-04",
+    "anbefaling": "KØB",
+    "pris_koeb": 110.38,
+    "score": 8.3,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 206,
+    "ticker": "PSX",
+    "dato": "2026-09-04",
+    "anbefaling": "KØB",
+    "pris_koeb": 254.66,
+    "score": 8.3,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 207,
+    "ticker": "SNOW",
+    "dato": "2026-09-04",
+    "anbefaling": "KØB",
+    "pris_koeb": 356.47,
     "score": 8.2,
     "pris_30d": null,
     "afkast_30d": null
