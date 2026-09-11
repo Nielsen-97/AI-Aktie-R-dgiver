@@ -966,8 +966,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 130.42,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 144.71,
+    "afkast_30d": 10.96
   },
   {
     "id": 98,
@@ -976,8 +976,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 1215.02,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 1123.0,
+    "afkast_30d": -7.57
   },
   {
     "id": 99,
@@ -986,8 +986,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 159.8,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 165.23,
+    "afkast_30d": 3.4
   },
   {
     "id": 100,
@@ -996,8 +996,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 196.66,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 212.76,
+    "afkast_30d": 8.19
   },
   {
     "id": 101,
@@ -1006,8 +1006,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 107.7,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 107.33,
+    "afkast_30d": -0.34
   },
   {
     "id": 102,
@@ -1016,8 +1016,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": NaN,
     "score": 7.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 255.0,
+    "afkast_30d": 0
   },
   {
     "id": 103,
@@ -2236,6 +2236,36 @@
     "anbefaling": "KØB",
     "pris_koeb": 223.67,
     "score": 8.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 225,
+    "ticker": "XOM",
+    "dato": "2026-09-11",
+    "anbefaling": "KØB",
+    "pris_koeb": 165.23,
+    "score": 8.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 226,
+    "ticker": "AAPL",
+    "dato": "2026-09-11",
+    "anbefaling": "KØB",
+    "pris_koeb": 326.57,
+    "score": 7.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 227,
+    "ticker": "CVX",
+    "dato": "2026-09-11",
+    "anbefaling": "HOLD",
+    "pris_koeb": 212.76,
+    "score": 8.4,
     "pris_30d": null,
     "afkast_30d": null
   }
