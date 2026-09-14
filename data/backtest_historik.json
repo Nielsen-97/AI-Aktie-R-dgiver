@@ -1026,8 +1026,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 132.92,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 143.93,
+    "afkast_30d": 8.28
   },
   {
     "id": 104,
@@ -1036,8 +1036,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 63.7,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 63.64,
+    "afkast_30d": -0.09
   },
   {
     "id": 105,
@@ -1046,8 +1046,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 196.6,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 214.06,
+    "afkast_30d": 8.88
   },
   {
     "id": 106,
@@ -1056,8 +1056,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 127.3,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 137.35,
+    "afkast_30d": 7.89
   },
   {
     "id": 107,
@@ -1066,8 +1066,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 183.78,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 164.97,
+    "afkast_30d": -10.24
   },
   {
     "id": 108,
@@ -1076,8 +1076,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 248.76,
     "score": 9.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 257.12,
+    "afkast_30d": 3.36
   },
   {
     "id": 109,
@@ -1086,8 +1086,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 141.41,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 147.36,
+    "afkast_30d": 4.21
   },
   {
     "id": 110,
@@ -1096,8 +1096,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 232.61,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 259.47,
+    "afkast_30d": 11.55
   },
   {
     "id": 111,
@@ -1106,8 +1106,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 64.65,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 63.64,
+    "afkast_30d": -1.56
   },
   {
     "id": 112,
@@ -1116,8 +1116,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 337.01,
     "score": 9.1,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 298.22,
+    "afkast_30d": -11.51
   },
   {
     "id": 113,
@@ -1126,8 +1126,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 262.08,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 265.58,
+    "afkast_30d": 1.34
   },
   {
     "id": 114,
@@ -1136,8 +1136,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 250.82,
     "score": 9.1,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 257.12,
+    "afkast_30d": 2.51
   },
   {
     "id": 115,
@@ -2266,6 +2266,36 @@
     "anbefaling": "HOLD",
     "pris_koeb": 212.76,
     "score": 8.4,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 228,
+    "ticker": "EOG",
+    "dato": "2026-09-14",
+    "anbefaling": "HOLD",
+    "pris_koeb": 147.36,
+    "score": 8.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 229,
+    "ticker": "CVX",
+    "dato": "2026-09-14",
+    "anbefaling": "HOLD",
+    "pris_koeb": 214.06,
+    "score": 8.4,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 230,
+    "ticker": "AAPL",
+    "dato": "2026-09-14",
+    "anbefaling": "HOLD",
+    "pris_koeb": 332.27,
+    "score": 8.2,
     "pris_30d": null,
     "afkast_30d": null
   }
