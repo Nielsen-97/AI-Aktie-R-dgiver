@@ -2298,5 +2298,55 @@
     "score": 8.2,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 231,
+    "ticker": "CRM",
+    "dato": "2026-09-15",
+    "anbefaling": "KØB",
+    "pris_koeb": 259.43,
+    "score": 9.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 232,
+    "ticker": "V",
+    "dato": "2026-09-15",
+    "anbefaling": "KØB",
+    "pris_koeb": 375.28,
+    "score": 8.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 233,
+    "ticker": "T",
+    "dato": "2026-09-15",
+    "anbefaling": "KØB",
+    "pris_koeb": 26.51,
+    "score": 8.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 234,
+    "ticker": "COP",
+    "dato": "2026-09-15",
+    "anbefaling": "KØB",
+    "pris_koeb": 136.67,
+    "score": 8.4,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 235,
+    "ticker": "ABBV",
+    "dato": "2026-09-15",
+    "anbefaling": "KØB",
+    "pris_koeb": 261.77,
+    "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
