@@ -1146,8 +1146,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 514.39,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 504.2,
+    "afkast_30d": -1.98
   },
   {
     "id": 116,
@@ -1156,8 +1156,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 569.29,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 573.27,
+    "afkast_30d": 0.7
   },
   {
     "id": 117,
@@ -1166,8 +1166,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 20700.0,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 22780.0,
+    "afkast_30d": 10.05
   },
   {
     "id": 118,
@@ -1176,8 +1176,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 142.61,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 153.74,
+    "afkast_30d": 7.8
   },
   {
     "id": 119,
@@ -1186,8 +1186,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 233.61,
     "score": 10.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 264.93,
+    "afkast_30d": 13.41
   },
   {
     "id": 120,
@@ -1196,8 +1196,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 249.46,
     "score": 9.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 263.04,
+    "afkast_30d": 5.44
   },
   {
     "id": 121,
@@ -2346,6 +2346,56 @@
     "anbefaling": "KØB",
     "pris_koeb": 261.77,
     "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 236,
+    "ticker": "MA",
+    "dato": "2026-09-16",
+    "anbefaling": "KØB",
+    "pris_koeb": 573.27,
+    "score": 8.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 237,
+    "ticker": "TMO",
+    "dato": "2026-09-16",
+    "anbefaling": "KØB",
+    "pris_koeb": 641.39,
+    "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 238,
+    "ticker": "GILD",
+    "dato": "2026-09-16",
+    "anbefaling": "KØB",
+    "pris_koeb": 146.3,
+    "score": 8.1,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 239,
+    "ticker": "META",
+    "dato": "2026-09-16",
+    "anbefaling": "KØB",
+    "pris_koeb": 670.24,
+    "score": 8.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 240,
+    "ticker": "CRM",
+    "dato": "2026-09-16",
+    "anbefaling": "HOLD",
+    "pris_koeb": 255.65,
+    "score": 8.9,
     "pris_30d": null,
     "afkast_30d": null
   }
