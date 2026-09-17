@@ -2398,5 +2398,15 @@
     "score": 8.9,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 241,
+    "ticker": "PSX",
+    "dato": "2026-09-17",
+    "anbefaling": "KØB",
+    "pris_koeb": 264.63,
+    "score": 8.0,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
