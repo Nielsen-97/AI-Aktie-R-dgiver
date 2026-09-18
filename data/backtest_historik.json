@@ -2408,5 +2408,55 @@
     "score": 8.0,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 242,
+    "ticker": "SNOW",
+    "dato": "2026-09-18",
+    "anbefaling": "KØB",
+    "pris_koeb": 338.39,
+    "score": 8.3,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 243,
+    "ticker": "MSFT",
+    "dato": "2026-09-18",
+    "anbefaling": "KØB",
+    "pris_koeb": 497.75,
+    "score": 8.1,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 244,
+    "ticker": "V",
+    "dato": "2026-09-18",
+    "anbefaling": "HOLD",
+    "pris_koeb": 369.93,
+    "score": 8.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 245,
+    "ticker": "JNJ",
+    "dato": "2026-09-18",
+    "anbefaling": "KØB",
+    "pris_koeb": 270.22,
+    "score": 7.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 246,
+    "ticker": "GOOGL",
+    "dato": "2026-09-18",
+    "anbefaling": "KØB",
+    "pris_koeb": 347.33,
+    "score": 7.9,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
