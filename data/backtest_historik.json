@@ -1206,8 +1206,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 28.25,
     "score": 9.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 27.66,
+    "afkast_30d": -2.09
   },
   {
     "id": 122,
@@ -1216,8 +1216,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 25.49,
     "score": 9.2,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 25.4,
+    "afkast_30d": -0.35
   },
   {
     "id": 123,
@@ -1226,8 +1226,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 205.54,
     "score": 9.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 209.51,
+    "afkast_30d": 1.93
   },
   {
     "id": 124,
@@ -1236,8 +1236,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 370.74,
     "score": 8.9,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 368.29,
+    "afkast_30d": -0.66
   },
   {
     "id": 125,
@@ -1246,8 +1246,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 111.75,
     "score": 8.9,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 105.25,
+    "afkast_30d": -5.82
   },
   {
     "id": 126,
@@ -1256,8 +1256,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 265.72,
     "score": 9.8,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 263.96,
+    "afkast_30d": -0.66
   },
   {
     "id": 127,
@@ -2456,6 +2456,26 @@
     "anbefaling": "KØB",
     "pris_koeb": 347.33,
     "score": 7.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 247,
+    "ticker": "NVDA",
+    "dato": "2026-09-21",
+    "anbefaling": "KØB",
+    "pris_koeb": 222.27,
+    "score": 8.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 248,
+    "ticker": "TMO",
+    "dato": "2026-09-21",
+    "anbefaling": "HOLD",
+    "pris_koeb": 651.45,
+    "score": 8.4,
     "pris_30d": null,
     "afkast_30d": null
   }
