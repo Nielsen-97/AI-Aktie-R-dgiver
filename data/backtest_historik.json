@@ -1486,8 +1486,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 152.55,
     "score": 8.2,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 148.08,
+    "afkast_30d": -2.93
   },
   {
     "id": 150,
@@ -1496,8 +1496,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 67.01,
     "score": 8.8,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 61.15,
+    "afkast_30d": -8.74
   },
   {
     "id": 151,
@@ -1506,8 +1506,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 262.07,
     "score": 9.2,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 249.27,
+    "afkast_30d": -4.88
   },
   {
     "id": 152,
@@ -1516,8 +1516,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 1172.61,
     "score": 8.6,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 1060.89,
+    "afkast_30d": -9.53
   },
   {
     "id": 153,
@@ -1526,8 +1526,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 213.36,
     "score": 8.5,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 155.9,
+    "afkast_30d": -26.93
   },
   {
     "id": 154,
@@ -1536,8 +1536,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 487.31,
     "score": 8.4,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 500.59,
+    "afkast_30d": 2.73
   },
   {
     "id": 155,
@@ -1546,8 +1546,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 61.68,
     "score": 8.4,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 52.51,
+    "afkast_30d": -14.87
   },
   {
     "id": 156,
@@ -1556,8 +1556,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 264.52,
     "score": 9.2,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 265.08,
+    "afkast_30d": 0.21
   },
   {
     "id": 157,
@@ -2516,6 +2516,36 @@
     "anbefaling": "KØB",
     "pris_koeb": 264.48,
     "score": 7.6,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 253,
+    "ticker": "SNOW",
+    "dato": "2026-09-24",
+    "anbefaling": "KØB",
+    "pris_koeb": 334.81,
+    "score": 8.6,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 254,
+    "ticker": "PFE",
+    "dato": "2026-09-24",
+    "anbefaling": "KØB",
+    "pris_koeb": 28.18,
+    "score": 8.3,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 255,
+    "ticker": "JNJ",
+    "dato": "2026-09-24",
+    "anbefaling": "KØB",
+    "pris_koeb": 269.17,
+    "score": 8.2,
     "pris_30d": null,
     "afkast_30d": null
   }
