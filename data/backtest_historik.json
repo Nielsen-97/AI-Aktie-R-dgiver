@@ -1566,8 +1566,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 261.06,
     "score": 9.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 249.38,
+    "afkast_30d": -4.47
   },
   {
     "id": 158,
@@ -1576,8 +1576,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 1058.88,
     "score": 8.1,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 923.29,
+    "afkast_30d": -12.81
   },
   {
     "id": 159,
@@ -1586,8 +1586,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 111.25,
     "score": 8.1,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 105.56,
+    "afkast_30d": -5.11
   },
   {
     "id": 160,
@@ -1596,8 +1596,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 148.77,
     "score": 9.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 149.69,
+    "afkast_30d": 0.62
   },
   {
     "id": 161,
@@ -1606,8 +1606,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 442.24,
     "score": 8.9,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 406.04,
+    "afkast_30d": -8.19
   },
   {
     "id": 162,
@@ -1616,8 +1616,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 265.79,
     "score": 9.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 265.12,
+    "afkast_30d": -0.25
   },
   {
     "id": 163,
@@ -2546,6 +2546,26 @@
     "anbefaling": "KØB",
     "pris_koeb": 269.17,
     "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 256,
+    "ticker": "MAERSK-B.CO",
+    "dato": "2026-09-25",
+    "anbefaling": "KØB",
+    "pris_koeb": 23180.0,
+    "score": 8.4,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 257,
+    "ticker": "AMD",
+    "dato": "2026-09-25",
+    "anbefaling": "KØB",
+    "pris_koeb": 629.26,
+    "score": 8.0,
     "pris_30d": null,
     "afkast_30d": null
   }
