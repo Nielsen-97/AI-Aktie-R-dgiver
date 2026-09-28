@@ -1626,8 +1626,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 312.88,
     "score": 8.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 315.21,
+    "afkast_30d": 0.74
   },
   {
     "id": 164,
@@ -1636,8 +1636,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 845.6,
     "score": 8.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 840.0,
+    "afkast_30d": -0.66
   },
   {
     "id": 165,
@@ -1646,8 +1646,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 28.3,
     "score": 8.9,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 28.67,
+    "afkast_30d": 1.31
   },
   {
     "id": 166,
@@ -1656,8 +1656,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 177.5,
     "score": 7.9,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 189.67,
+    "afkast_30d": 6.86
   },
   {
     "id": 167,
@@ -1666,8 +1666,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 383.9,
     "score": 8.7,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 367.38,
+    "afkast_30d": -4.3
   },
   {
     "id": 168,
@@ -1676,8 +1676,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 262.9,
     "score": 9.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 264.34,
+    "afkast_30d": 0.55
   },
   {
     "id": 169,
@@ -1686,8 +1686,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 227.36,
     "score": 9.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 225.07,
+    "afkast_30d": -1.01
   },
   {
     "id": 170,
@@ -1696,8 +1696,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 215.3,
     "score": 9.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 196.31,
+    "afkast_30d": -8.82
   },
   {
     "id": 171,
@@ -1706,8 +1706,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 178.46,
     "score": 8.8,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 169.55,
+    "afkast_30d": -4.99
   },
   {
     "id": 172,
@@ -1716,8 +1716,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 331.15,
     "score": 8.4,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 335.94,
+    "afkast_30d": 1.45
   },
   {
     "id": 173,
@@ -1726,8 +1726,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 354.89,
     "score": 8.2,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 343.06,
+    "afkast_30d": -3.33
   },
   {
     "id": 174,
@@ -1736,8 +1736,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 258.53,
     "score": 9.7,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 264.34,
+    "afkast_30d": 2.25
   },
   {
     "id": 175,
@@ -1746,8 +1746,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 62.06,
     "score": 8.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 56.7,
+    "afkast_30d": -8.64
   },
   {
     "id": 176,
@@ -1756,8 +1756,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 25.94,
     "score": 8.9,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 25.38,
+    "afkast_30d": -2.16
   },
   {
     "id": 177,
@@ -1766,8 +1766,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 107.75,
     "score": 7.8,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 94.86,
+    "afkast_30d": -11.96
   },
   {
     "id": 178,
@@ -1776,8 +1776,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 257.39,
     "score": 9.7,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 264.34,
+    "afkast_30d": 2.7
   },
   {
     "id": 179,
@@ -1786,8 +1786,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 259.17,
     "score": 8.9,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 234.02,
+    "afkast_30d": -9.7
   },
   {
     "id": 180,
@@ -1796,8 +1796,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 517.29,
     "score": 8.9,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 516.17,
+    "afkast_30d": -0.22
   },
   {
     "id": 181,
@@ -1806,8 +1806,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 56.76,
     "score": 7.7,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 51.54,
+    "afkast_30d": -9.2
   },
   {
     "id": 182,
@@ -1816,8 +1816,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 243.36,
     "score": 8.6,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 255.75,
+    "afkast_30d": 5.09
   },
   {
     "id": 183,
@@ -1826,8 +1826,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 854.0,
     "score": 8.4,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 840.0,
+    "afkast_30d": -1.64
   },
   {
     "id": 184,
@@ -1836,8 +1836,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 256.31,
     "score": 9.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 264.34,
+    "afkast_30d": 3.13
   },
   {
     "id": 185,
@@ -2566,6 +2566,26 @@
     "anbefaling": "KØB",
     "pris_koeb": 629.26,
     "score": 8.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 258,
+    "ticker": "NVDA",
+    "dato": "2026-09-28",
+    "anbefaling": "KØB",
+    "pris_koeb": 225.07,
+    "score": 8.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 259,
+    "ticker": "GILD",
+    "dato": "2026-09-28",
+    "anbefaling": "KØB",
+    "pris_koeb": 150.93,
+    "score": 8.4,
     "pris_30d": null,
     "afkast_30d": null
   }
