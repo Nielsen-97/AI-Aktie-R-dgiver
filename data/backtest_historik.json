@@ -1846,8 +1846,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 595.3,
     "score": 8.7,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 563.58,
+    "afkast_30d": -5.33
   },
   {
     "id": 186,
@@ -1856,8 +1856,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 1164.48,
     "score": 8.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 1067.94,
+    "afkast_30d": -8.29
   },
   {
     "id": 187,
@@ -1866,8 +1866,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 27.06,
     "score": 8.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 21.6,
+    "afkast_30d": -20.18
   },
   {
     "id": 188,
@@ -1876,8 +1876,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 26.01,
     "score": 9.1,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 24.48,
+    "afkast_30d": -5.88
   },
   {
     "id": 189,
@@ -1886,8 +1886,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 513.53,
     "score": 8.9,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 508.96,
+    "afkast_30d": -0.89
   },
   {
     "id": 190,
@@ -1896,8 +1896,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 255.48,
     "score": 9.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 263.29,
+    "afkast_30d": 3.06
   },
   {
     "id": 191,
@@ -2586,6 +2586,56 @@
     "anbefaling": "KØB",
     "pris_koeb": 150.93,
     "score": 8.4,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 260,
+    "ticker": "PFE",
+    "dato": "2026-09-30",
+    "anbefaling": "KØB",
+    "pris_koeb": 28.72,
+    "score": 8.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 261,
+    "ticker": "TMO",
+    "dato": "2026-09-30",
+    "anbefaling": "KØB",
+    "pris_koeb": 679.61,
+    "score": 8.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 262,
+    "ticker": "META",
+    "dato": "2026-09-30",
+    "anbefaling": "KØB",
+    "pris_koeb": 738.79,
+    "score": 8.6,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 263,
+    "ticker": "CVX",
+    "dato": "2026-09-30",
+    "anbefaling": "KØB",
+    "pris_koeb": 204.38,
+    "score": 8.3,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 264,
+    "ticker": "META",
+    "dato": "2026-09-30",
+    "anbefaling": "KØB",
+    "pris_koeb": 738.79,
+    "score": 8.3,
     "pris_30d": null,
     "afkast_30d": null
   }
