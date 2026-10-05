@@ -2006,8 +2006,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 852.03,
     "score": 8.6,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 735.2,
+    "afkast_30d": -13.71
   },
   {
     "id": 202,
@@ -2016,8 +2016,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 442.84,
     "score": 8.4,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 403.04,
+    "afkast_30d": -8.99
   },
   {
     "id": 203,
@@ -2026,8 +2026,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 0,
     "score": 8.2,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 141.38,
+    "afkast_30d": 0
   },
   {
     "id": 204,
@@ -2036,8 +2036,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 68.09,
     "score": 8.5,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 61.15,
+    "afkast_30d": -10.19
   },
   {
     "id": 205,
@@ -2046,8 +2046,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 110.38,
     "score": 8.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 96.7,
+    "afkast_30d": -12.39
   },
   {
     "id": 206,
@@ -2056,8 +2056,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 254.66,
     "score": 8.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 264.58,
+    "afkast_30d": 3.9
   },
   {
     "id": 207,
@@ -2066,8 +2066,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 356.47,
     "score": 8.2,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 341.04,
+    "afkast_30d": -4.33
   },
   {
     "id": 208,
@@ -2695,6 +2695,36 @@
     "dato": "2026-10-02",
     "anbefaling": "KØB",
     "pris_koeb": 264.23,
+    "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 271,
+    "ticker": "AMD",
+    "dato": "2026-10-05",
+    "anbefaling": "KØB",
+    "pris_koeb": 633.91,
+    "score": 9.1,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 272,
+    "ticker": "NVDA",
+    "dato": "2026-10-05",
+    "anbefaling": "KØB",
+    "pris_koeb": 233.95,
+    "score": 8.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 273,
+    "ticker": "PSX",
+    "dato": "2026-10-05",
+    "anbefaling": "HOLD",
+    "pris_koeb": 264.58,
     "score": 8.2,
     "pris_30d": null,
     "afkast_30d": null
