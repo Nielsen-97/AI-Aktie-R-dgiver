@@ -2126,8 +2126,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 28.45,
     "score": 8.7,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 28.0,
+    "afkast_30d": -1.58
   },
   {
     "id": 214,
@@ -2136,8 +2136,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 230.36,
     "score": 8.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 237.47,
+    "afkast_30d": 3.09
   },
   {
     "id": 215,
