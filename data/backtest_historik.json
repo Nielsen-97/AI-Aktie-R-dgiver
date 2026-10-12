@@ -2196,8 +2196,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 605.69,
     "score": 8.4,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 658.02,
+    "afkast_30d": 8.64
   },
   {
     "id": 221,
@@ -2206,8 +2206,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 260.78,
     "score": 8.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 278.18,
+    "afkast_30d": 6.67
   },
   {
     "id": 222,
@@ -2216,8 +2216,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 215.35,
     "score": 7.9,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 190.02,
+    "afkast_30d": -11.76
   },
   {
     "id": 223,
@@ -2226,8 +2226,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 653.69,
     "score": 7.7,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 718.67,
+    "afkast_30d": 9.94
   },
   {
     "id": 224,
@@ -2236,8 +2236,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 223.67,
     "score": 8.5,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 229.28,
+    "afkast_30d": 2.51
   },
   {
     "id": 225,
@@ -2246,8 +2246,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 165.23,
     "score": 8.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 168.94,
+    "afkast_30d": 2.25
   },
   {
     "id": 226,
@@ -2256,8 +2256,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 326.57,
     "score": 7.7,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 336.64,
+    "afkast_30d": 3.08
   },
   {
     "id": 227,
@@ -2266,8 +2266,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 212.76,
     "score": 8.4,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 211.98,
+    "afkast_30d": -0.37
   },
   {
     "id": 228,
@@ -2776,6 +2776,56 @@
     "anbefaling": "KØB",
     "pris_koeb": 340.42,
     "score": 8.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 279,
+    "ticker": "GILD",
+    "dato": "2026-10-12",
+    "anbefaling": "KØB",
+    "pris_koeb": 151.17,
+    "score": 8.6,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 280,
+    "ticker": "PFE",
+    "dato": "2026-10-12",
+    "anbefaling": "KØB",
+    "pris_koeb": 28.28,
+    "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 281,
+    "ticker": "GOOGL",
+    "dato": "2026-10-12",
+    "anbefaling": "KØB",
+    "pris_koeb": 351.66,
+    "score": 8.1,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 282,
+    "ticker": "PSX",
+    "dato": "2026-10-12",
+    "anbefaling": "KØB",
+    "pris_koeb": 278.18,
+    "score": 8.1,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 283,
+    "ticker": "MAERSK-B.CO",
+    "dato": "2026-10-12",
+    "anbefaling": "HOLD",
+    "pris_koeb": 24990.0,
+    "score": 9.0,
     "pris_30d": null,
     "afkast_30d": null
   }
