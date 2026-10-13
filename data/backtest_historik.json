@@ -2828,5 +2828,35 @@
     "score": 9.0,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 284,
+    "ticker": "MSFT",
+    "dato": "2026-10-13",
+    "anbefaling": "KØB",
+    "pris_koeb": 541.15,
+    "score": 8.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 285,
+    "ticker": "AMGN",
+    "dato": "2026-10-13",
+    "anbefaling": "KØB",
+    "pris_koeb": 417.57,
+    "score": 8.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 286,
+    "ticker": "COP",
+    "dato": "2026-10-13",
+    "anbefaling": "KØB",
+    "pris_koeb": 137.56,
+    "score": 8.0,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
