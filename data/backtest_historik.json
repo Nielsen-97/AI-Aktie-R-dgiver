@@ -2406,8 +2406,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 264.63,
     "score": 8.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 293.17,
+    "afkast_30d": 10.78
   },
   {
     "id": 242,
@@ -2416,8 +2416,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 338.39,
     "score": 8.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 306.84,
+    "afkast_30d": -9.32
   },
   {
     "id": 243,
@@ -2426,8 +2426,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 497.75,
     "score": 8.1,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 529.05,
+    "afkast_30d": 6.29
   },
   {
     "id": 244,
@@ -2436,8 +2436,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 369.93,
     "score": 8.9,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 402.61,
+    "afkast_30d": 8.83
   },
   {
     "id": 245,
@@ -2446,8 +2446,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 270.22,
     "score": 7.9,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 255.56,
+    "afkast_30d": -5.43
   },
   {
     "id": 246,
@@ -2456,8 +2456,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 347.33,
     "score": 7.9,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 340.59,
+    "afkast_30d": -1.94
   },
   {
     "id": 247,
@@ -2946,6 +2946,46 @@
     "anbefaling": "KØB",
     "pris_koeb": 145.19,
     "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 296,
+    "ticker": "GILD",
+    "dato": "2026-10-19",
+    "anbefaling": "KØB",
+    "pris_koeb": 156.19,
+    "score": 9.1,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 297,
+    "ticker": "PSX",
+    "dato": "2026-10-19",
+    "anbefaling": "KØB",
+    "pris_koeb": 293.17,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 298,
+    "ticker": "CVX",
+    "dato": "2026-10-19",
+    "anbefaling": "KØB",
+    "pris_koeb": 224.99,
+    "score": 8.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 299,
+    "ticker": "BLK",
+    "dato": "2026-10-19",
+    "anbefaling": "KØB",
+    "pris_koeb": 1134.38,
+    "score": 8.4,
     "pris_30d": null,
     "afkast_30d": null
   }
