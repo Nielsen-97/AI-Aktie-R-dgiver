@@ -2988,5 +2988,25 @@
     "score": 8.4,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 300,
+    "ticker": "COP",
+    "dato": "2026-10-20",
+    "anbefaling": "KØB",
+    "pris_koeb": 145.24,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 301,
+    "ticker": "AMZN",
+    "dato": "2026-10-20",
+    "anbefaling": "KØB",
+    "pris_koeb": 262.45,
+    "score": 8.1,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
