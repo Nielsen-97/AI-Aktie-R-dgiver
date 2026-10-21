@@ -2466,8 +2466,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 222.27,
     "score": 8.5,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 216.47,
+    "afkast_30d": -2.61
   },
   {
     "id": 248,
@@ -2476,8 +2476,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 651.45,
     "score": 8.4,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 687.37,
+    "afkast_30d": 5.51
   },
   {
     "id": 249,
@@ -3006,6 +3006,16 @@
     "anbefaling": "KØB",
     "pris_koeb": 262.45,
     "score": 8.1,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 302,
+    "ticker": "PFE",
+    "dato": "2026-10-21",
+    "anbefaling": "KØB",
+    "pris_koeb": 30.11,
+    "score": 8.7,
     "pris_30d": null,
     "afkast_30d": null
   }
