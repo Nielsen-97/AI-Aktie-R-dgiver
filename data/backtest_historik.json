@@ -3058,5 +3058,55 @@
     "score": 8.8,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 307,
+    "ticker": "LLY",
+    "dato": "2026-10-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 1306.69,
+    "score": 9.1,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 308,
+    "ticker": "BMY",
+    "dato": "2026-10-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 63.0,
+    "score": 9.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 309,
+    "ticker": "XOM",
+    "dato": "2026-10-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 178.23,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 310,
+    "ticker": "AAPL",
+    "dato": "2026-10-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 348.22,
+    "score": 8.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 311,
+    "ticker": "MMM",
+    "dato": "2026-10-23",
+    "anbefaling": "KØB",
+    "pris_koeb": 175.56,
+    "score": 8.5,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
