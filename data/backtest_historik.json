@@ -3148,5 +3148,55 @@
     "score": 8.3,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 316,
+    "ticker": "PFE",
+    "dato": "2026-10-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 29.79,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 317,
+    "ticker": "CVX",
+    "dato": "2026-10-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 232.01,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 318,
+    "ticker": "BLK",
+    "dato": "2026-10-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 1127.66,
+    "score": 8.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 319,
+    "ticker": "TMO",
+    "dato": "2026-10-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 684.89,
+    "score": 8.3,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 320,
+    "ticker": "TXN",
+    "dato": "2026-10-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 298.12,
+    "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
