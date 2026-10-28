@@ -2576,8 +2576,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 225.07,
     "score": 8.5,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 217.94,
+    "afkast_30d": -3.17
   },
   {
     "id": 259,
@@ -2586,8 +2586,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 150.93,
     "score": 8.4,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 159.08,
+    "afkast_30d": 5.4
   },
   {
     "id": 260,
@@ -3196,6 +3196,46 @@
     "anbefaling": "KØB",
     "pris_koeb": 298.12,
     "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 321,
+    "ticker": "SNOW",
+    "dato": "2026-10-28",
+    "anbefaling": "KØB",
+    "pris_koeb": 337.42,
+    "score": 8.1,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 322,
+    "ticker": "TRYG.CO",
+    "dato": "2026-10-28",
+    "anbefaling": "KØB",
+    "pris_koeb": 157.5,
+    "score": 7.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 323,
+    "ticker": "LMT",
+    "dato": "2026-10-28",
+    "anbefaling": "KØB",
+    "pris_koeb": 622.99,
+    "score": 7.6,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 324,
+    "ticker": "COP",
+    "dato": "2026-10-28",
+    "anbefaling": "HOLD",
+    "pris_koeb": 147.96,
+    "score": 8.5,
     "pris_30d": null,
     "afkast_30d": null
   }
