@@ -3238,5 +3238,45 @@
     "score": 8.5,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 325,
+    "ticker": "EOG",
+    "dato": "2026-10-29",
+    "anbefaling": "KØB",
+    "pris_koeb": 160.92,
+    "score": 8.6,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 326,
+    "ticker": "BLK",
+    "dato": "2026-10-29",
+    "anbefaling": "HOLD",
+    "pris_koeb": 1157.88,
+    "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 327,
+    "ticker": "SNOW",
+    "dato": "2026-10-29",
+    "anbefaling": "HOLD",
+    "pris_koeb": 339.91,
+    "score": 8.1,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 328,
+    "ticker": "AMGN",
+    "dato": "2026-10-29",
+    "anbefaling": "HOLD",
+    "pris_koeb": 451.83,
+    "score": 7.8,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
