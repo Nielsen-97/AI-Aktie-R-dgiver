@@ -2596,8 +2596,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 28.72,
     "score": 8.7,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 29.95,
+    "afkast_30d": 4.28
   },
   {
     "id": 261,
@@ -2606,8 +2606,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 679.61,
     "score": 8.7,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 709.18,
+    "afkast_30d": 4.35
   },
   {
     "id": 262,
@@ -2616,8 +2616,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 738.79,
     "score": 8.6,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 624.52,
+    "afkast_30d": -15.47
   },
   {
     "id": 263,
@@ -2626,8 +2626,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 204.38,
     "score": 8.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 231.46,
+    "afkast_30d": 13.25
   },
   {
     "id": 264,
@@ -2636,8 +2636,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 738.79,
     "score": 8.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 624.52,
+    "afkast_30d": -15.47
   },
   {
     "id": 265,
@@ -3276,6 +3276,56 @@
     "anbefaling": "HOLD",
     "pris_koeb": 451.83,
     "score": 7.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 329,
+    "ticker": "MA",
+    "dato": "2026-10-30",
+    "anbefaling": "KØB",
+    "pris_koeb": 635.7,
+    "score": 9.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 330,
+    "ticker": "GILD",
+    "dato": "2026-10-30",
+    "anbefaling": "KØB",
+    "pris_koeb": 165.61,
+    "score": 9.0,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 331,
+    "ticker": "LLY",
+    "dato": "2026-10-30",
+    "anbefaling": "KØB",
+    "pris_koeb": 1373.7,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 332,
+    "ticker": "MSFT",
+    "dato": "2026-10-30",
+    "anbefaling": "KØB",
+    "pris_koeb": 530.14,
+    "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 333,
+    "ticker": "MMM",
+    "dato": "2026-10-30",
+    "anbefaling": "KØB",
+    "pris_koeb": 177.36,
+    "score": 8.2,
     "pris_30d": null,
     "afkast_30d": null
   }
