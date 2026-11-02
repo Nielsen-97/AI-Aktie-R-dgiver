@@ -2646,8 +2646,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 344.08,
     "score": 8.2,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 279.84,
+    "afkast_30d": -18.67
   },
   {
     "id": 266,
@@ -2656,8 +2656,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 28.52,
     "score": 8.7,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 30.52,
+    "afkast_30d": 7.01
   },
   {
     "id": 267,
@@ -2666,8 +2666,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 23720.0,
     "score": 9.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 23450.0,
+    "afkast_30d": -1.14
   },
   {
     "id": 268,
@@ -2676,8 +2676,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 341.99,
     "score": 8.8,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 306.08,
+    "afkast_30d": -10.5
   },
   {
     "id": 269,
@@ -2686,8 +2686,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 512.8,
     "score": 8.3,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 521.91,
+    "afkast_30d": 1.78
   },
   {
     "id": 270,
@@ -2696,8 +2696,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 264.23,
     "score": 8.2,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 282.83,
+    "afkast_30d": 7.04
   },
   {
     "id": 271,
@@ -3326,6 +3326,46 @@
     "anbefaling": "KØB",
     "pris_koeb": 177.36,
     "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 334,
+    "ticker": "ABBV",
+    "dato": "2026-11-02",
+    "anbefaling": "KØB",
+    "pris_koeb": 294.89,
+    "score": 9.4,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 335,
+    "ticker": "REGN",
+    "dato": "2026-11-02",
+    "anbefaling": "KØB",
+    "pris_koeb": 927.89,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 336,
+    "ticker": "XOM",
+    "dato": "2026-11-02",
+    "anbefaling": "KØB",
+    "pris_koeb": 187.25,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 337,
+    "ticker": "CVX",
+    "dato": "2026-11-02",
+    "anbefaling": "KØB",
+    "pris_koeb": 235.52,
+    "score": 8.8,
     "pris_30d": null,
     "afkast_30d": null
   }
