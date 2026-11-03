@@ -3368,5 +3368,35 @@
     "score": 8.8,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 338,
+    "ticker": "V",
+    "dato": "2026-11-03",
+    "anbefaling": "KØB",
+    "pris_koeb": 425.51,
+    "score": 9.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 339,
+    "ticker": "LLY",
+    "dato": "2026-11-03",
+    "anbefaling": "HOLD",
+    "pris_koeb": 1410.99,
+    "score": 9.1,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 340,
+    "ticker": "TXN",
+    "dato": "2026-11-03",
+    "anbefaling": "KØB",
+    "pris_koeb": 302.02,
+    "score": 8.1,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
