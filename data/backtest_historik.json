@@ -2706,8 +2706,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 633.91,
     "score": 9.1,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 483.9,
+    "afkast_30d": -23.66
   },
   {
     "id": 272,
@@ -2716,8 +2716,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 233.95,
     "score": 8.5,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 206.69,
+    "afkast_30d": -11.65
   },
   {
     "id": 273,
@@ -2726,8 +2726,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 264.58,
     "score": 8.2,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 271.94,
+    "afkast_30d": 2.78
   },
   {
     "id": 274,
@@ -3396,6 +3396,26 @@
     "anbefaling": "KØB",
     "pris_koeb": 302.02,
     "score": 8.1,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 341,
+    "ticker": "BLK",
+    "dato": "2026-11-04",
+    "anbefaling": "KØB",
+    "pris_koeb": 1161.32,
+    "score": 8.6,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 342,
+    "ticker": "TMO",
+    "dato": "2026-11-04",
+    "anbefaling": "KØB",
+    "pris_koeb": 698.34,
+    "score": 8.6,
     "pris_30d": null,
     "afkast_30d": null
   }
