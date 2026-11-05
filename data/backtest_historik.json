@@ -3418,5 +3418,15 @@
     "score": 8.6,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 343,
+    "ticker": "PFE",
+    "dato": "2026-11-05",
+    "anbefaling": "KØB",
+    "pris_koeb": 30.79,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
