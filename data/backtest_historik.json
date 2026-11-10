@@ -3508,5 +3508,15 @@
     "score": 8.5,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 352,
+    "ticker": "ABBV",
+    "dato": "2026-11-10",
+    "anbefaling": "KØB",
+    "pris_koeb": 293.3,
+    "score": 9.5,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
