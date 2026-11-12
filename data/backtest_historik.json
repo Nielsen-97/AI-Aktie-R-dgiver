@@ -2836,8 +2836,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 541.15,
     "score": 8.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 521.13,
+    "afkast_30d": -3.7
   },
   {
     "id": 285,
@@ -2846,8 +2846,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 417.57,
     "score": 8.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 468.11,
+    "afkast_30d": 12.1
   },
   {
     "id": 286,
@@ -2856,8 +2856,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 137.56,
     "score": 8.0,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 137.86,
+    "afkast_30d": 0.22
   },
   {
     "id": 287,
@@ -3556,6 +3556,56 @@
     "anbefaling": "KØB",
     "pris_koeb": 348.51,
     "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 357,
+    "ticker": "REGN",
+    "dato": "2026-11-12",
+    "anbefaling": "KØB",
+    "pris_koeb": 959.41,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 358,
+    "ticker": "TGT",
+    "dato": "2026-11-12",
+    "anbefaling": "KØB",
+    "pris_koeb": 162.7,
+    "score": 8.7,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 359,
+    "ticker": "TMO",
+    "dato": "2026-11-12",
+    "anbefaling": "KØB",
+    "pris_koeb": 717.71,
+    "score": 8.6,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 360,
+    "ticker": "EOG",
+    "dato": "2026-11-12",
+    "anbefaling": "KØB",
+    "pris_koeb": 153.77,
+    "score": 8.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 361,
+    "ticker": "DIS",
+    "dato": "2026-11-12",
+    "anbefaling": "KØB",
+    "pris_koeb": 119.65,
+    "score": 8.1,
     "pris_30d": null,
     "afkast_30d": null
   }
