@@ -3608,5 +3608,35 @@
     "score": 8.1,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 362,
+    "ticker": "UNH",
+    "dato": "2026-11-13",
+    "anbefaling": "KØB",
+    "pris_koeb": 405.13,
+    "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 363,
+    "ticker": "ABBV",
+    "dato": "2026-11-13",
+    "anbefaling": "HOLD",
+    "pris_koeb": 294.45,
+    "score": 9.1,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 364,
+    "ticker": "TXN",
+    "dato": "2026-11-13",
+    "anbefaling": "KØB",
+    "pris_koeb": 312.48,
+    "score": 7.9,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
