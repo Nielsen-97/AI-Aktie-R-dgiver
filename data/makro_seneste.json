@@ -1,1 +1,1 @@
-{"vix": 22.6, "vix_status": "Uroligt", "sp_status": "Nedtrend", "sp_pris": 7323.63, "sp_sma200": 7346.55, "sp_sma50": 7648.51, "sp_1m_afkast": -5.04, "rente_10y": "5.08%", "rente_advarsel": true, "justering": -0.5, "stop_koeb": false, "forsigtig": false}
+{"vix": 31.57, "vix_status": "PANIK", "sp_status": "Nedtrend", "sp_pris": 7175.83, "sp_sma200": 7348.02, "sp_sma50": 7640.19, "sp_1m_afkast": -7.49, "rente_10y": "4.97%", "rente_advarsel": true, "justering": -2.5, "stop_koeb": true, "forsigtig": true}
