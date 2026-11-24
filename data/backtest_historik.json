@@ -3728,5 +3728,45 @@
     "score": 8.0,
     "pris_30d": null,
     "afkast_30d": null
+  },
+  {
+    "id": 374,
+    "ticker": "REGN",
+    "dato": "2026-11-24",
+    "anbefaling": "KØB",
+    "pris_koeb": 981.35,
+    "score": 8.8,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 375,
+    "ticker": "ABBV",
+    "dato": "2026-11-24",
+    "anbefaling": "KØB",
+    "pris_koeb": 296.97,
+    "score": 8.6,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 376,
+    "ticker": "MMM",
+    "dato": "2026-11-24",
+    "anbefaling": "KØB",
+    "pris_koeb": 185.98,
+    "score": 8.4,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 377,
+    "ticker": "TRYG.CO",
+    "dato": "2026-11-24",
+    "anbefaling": "KØB",
+    "pris_koeb": 166.8,
+    "score": 8.1,
+    "pris_30d": null,
+    "afkast_30d": null
   }
 ]
