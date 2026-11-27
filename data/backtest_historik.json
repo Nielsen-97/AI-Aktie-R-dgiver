@@ -3206,8 +3206,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 337.42,
     "score": 8.1,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 269.49,
+    "afkast_30d": -20.13
   },
   {
     "id": 322,
@@ -3216,8 +3216,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 157.5,
     "score": 7.7,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 168.4,
+    "afkast_30d": 6.92
   },
   {
     "id": 323,
@@ -3226,8 +3226,8 @@
     "anbefaling": "KØB",
     "pris_koeb": 622.99,
     "score": 7.6,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 604.39,
+    "afkast_30d": -2.99
   },
   {
     "id": 324,
@@ -3236,8 +3236,8 @@
     "anbefaling": "HOLD",
     "pris_koeb": 147.96,
     "score": 8.5,
-    "pris_30d": null,
-    "afkast_30d": null
+    "pris_30d": 137.14,
+    "afkast_30d": -7.31
   },
   {
     "id": 325,
@@ -3805,6 +3805,56 @@
     "dato": "2026-11-25",
     "anbefaling": "HOLD",
     "pris_koeb": 171.87,
+    "score": 7.9,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 382,
+    "ticker": "DIS",
+    "dato": "2026-11-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 126.92,
+    "score": 8.5,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 383,
+    "ticker": "AMGN",
+    "dato": "2026-11-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 473.33,
+    "score": 8.3,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 384,
+    "ticker": "BMY",
+    "dato": "2026-11-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 61.6,
+    "score": 8.2,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 385,
+    "ticker": "BLK",
+    "dato": "2026-11-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 1165.25,
+    "score": 8.1,
+    "pris_30d": null,
+    "afkast_30d": null
+  },
+  {
+    "id": 386,
+    "ticker": "AAPL",
+    "dato": "2026-11-27",
+    "anbefaling": "KØB",
+    "pris_koeb": 357.33,
     "score": 7.9,
     "pris_30d": null,
     "afkast_30d": null
